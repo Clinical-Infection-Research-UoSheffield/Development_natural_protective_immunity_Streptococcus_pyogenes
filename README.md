@@ -4,7 +4,7 @@ Code to reproduce analyses from SpyCATS longitudinal study of immunity to Strep 
 
 ## Description
 
-1. This repository contains the code to reproduce analyses from manuscrip entitled:Early life serological profiles and the development of natural protective humoral immunity to Streptococcus pyogenes in a high burden setting  
+1. This repository contains the code to reproduce analyses from manuscript entitled: Early life serological profiles and the development of natural protective humoral immunity to Streptococcus pyogenes in a high burden setting  
 2. Data including antibody measurements, clinical events, and demographics have been anonymized to protect participant confidentiality.
 3. Analyses include mixed-effects logistic regression to model event probabilities and piecewise regression. Cox proportional hazards models are used to estimate risk across different outcomes, with results formatted into comprehensive tables and plots.
 
