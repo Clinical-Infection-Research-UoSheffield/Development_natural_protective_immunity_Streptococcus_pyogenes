@@ -7,3 +7,4 @@
 data/
 scripts/Create_variables_not_for_sharing.R
 scripts/compile_figures.R
+R_output/

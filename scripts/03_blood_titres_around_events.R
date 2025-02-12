@@ -80,107 +80,17 @@ n2 <- IgG_blood$relative_changes_IgG_Blood %>%
     pull(event_id) %>%
     unique() %>% length ()
 
-# additional number of microbiological confirmed events without blood IgG measured pre- and post-event but with measurements pre- and during-event 
-
-n3 <- IgG_blood$relative_changes_IgG_Blood %>%
-    filter(is.na(pre_post) & !is.na(pre_event)) %>%
-    pull(event_id) %>%
-    unique() %>% length ()
-
-
-# total number of microbiological confirmed events with blood IgG measure before and after OR before and during event 
-n4 <-  IgG_blood$relative_changes_IgG_Blood %>%
-    filter(!is.na(pre_post) | !is.na(pre_event)) %>%
-    pull(event_id) %>%
-    unique() %>% length ()
-
 
 IgG_event_sentence <- 
     sprintf(
-    "From %d microbiologically confirmed events, paired pre- and post-event blood IgG titres were available from %d for analysis. For an additional %d events, paired pre- and during-event titres were available, leaving a total of %d paired samples in the analysis.",
-    n1, n2, n3, n4)
+    "From %d microbiologically confirmed events, paired pre- and post-event blood IgG titres were available from %d for analysis.",
+    n1, n2)
 
 print(IgG_event_sentence)
-rm(n2, n3, n4, IgG_event_sentence)
+rm(n2, IgG_event_sentence)
 
 
 #######  Describe the timing around events of titre measurements: 
-
-### Blood IgG
-
-# summarise timing of pre event blood IgG sample in relation to the event 
-
-IgG_pre_dist <-
-    IgG_blood$fold_changes_IgG_Blood %>%
-    as.data.frame() %>%
-    select(event_id, diff_Pre) %>%
-    unique() %>%
-    summarise(n = n(),
-              median = median(abs(diff_Pre), na.rm=T),
-              mean =  mean(abs(diff_Pre), na.rm=T),
-              Q1 = quantile(abs(diff_Pre), probs = 0.25, na.rm = T),
-              Q3 = quantile(abs(diff_Pre), probs = 0.75, na.rm = T),
-              IQR = IQR(abs(diff_Pre), na.rm=T),
-              min =  min(abs(diff_Pre), na.rm=T),
-              max =  max(abs(diff_Pre), na.rm=T))
-
-# print results 
-IgG_pre_dist
-
-# summarise timing of pre event sample in relation to the event with histogram 
-
-IgG_blood$fold_changes_IgG_Blood %>%
-    as.data.frame() %>%
-    select(event_id, diff_Pre) %>%
-    unique() %>%
-    ggplot(
-        aes(
-            x = abs(diff_Pre)
-        )
-    ) +
-    geom_histogram() +
-    theme_minimal() +
-    labs(
-        title = "Blood: time of measurment prior to a microbiologically confirmed event",
-        x= "number of days"
-    )
-
-#print summary setence
-sprintf(
-    "The median time to blood IgG titre measurement prior to the event was %d days (IQR = %d)",
-    as.integer(IgG_pre_dist$median), as.integer(IgG_pre_dist$IQR)
-)    
-
-# remove variable to declutter environment 
-rm(IgG_pre_dist)
-
-
-# summarise timing of post event blood IgG sample in relation to the event 
-
-IgG_post_dist <-
-    IgG_blood$fold_changes_IgG_Blood %>%
-    as.data.frame() %>%
-    select(event_id, diff_Post) %>%
-    unique() %>%
-    summarise(n = n(),
-              median = median(abs(diff_Post), na.rm=T),
-              mean =  mean(abs(diff_Post), na.rm=T),
-              IQR = IQR(abs(diff_Post), na.rm=T),
-              min =  min(abs(diff_Post), na.rm=T),
-              max =  max(abs(diff_Post), na.rm=T))
-
-# print summary
-IgG_post_dist
-
-# print summary sentence
-sprintf(
-    "The median time to blood IgG titre measurement after the event was %d days (IQR = %d)",
-    as.integer(IgG_post_dist$median), as.integer(IgG_post_dist$IQR)
-)    
-
-# remove variable to declutter environment 
-rm(IgG_post_dist)
-
 
 IgG_blood$fold_changes_IgG_Blood %>%
     as.data.frame() %>%
@@ -780,63 +690,21 @@ n5 <- no_event_titres_rel %>% pull(pid) %>% unique() %>% length()
 sprintf("Longitudinal blood IgG profiles in participants (n=%i) without microbiologically confirmed Strep A events during the study period.", n5)
 
 
-shelf(pracma)
-
-
-# Filter and calculate AUC
-auc_results <- no_event_titres_rel %>%
-    filter(!is.na(titre)) %>%
-    group_by(pid, Antigen) %>%
-        filter(
-           n()  >=3) %>%  # Filter groups with >=3 rows
-    arrange(visit_date) %>% 
-    summarise(
-        AUC = trapz(as.numeric(visit_date), rel_titre),  # AUC using trapezoidal rule
-        .groups = "drop"  # Drop grouping
-    )
-
-auc_results %>%
-    ungroup() %>%
-    pull(pid) %>% unique() %>% length()
- 
-auc_results %>%
-    left_join(age) %>%
-    select(pid, age_grp, AUC, Antigen) %>%
-    ungroup() %>%
-    group_by(age_grp, Antigen) %>%
-    summarise()
-
-
-# Plot with filtered results
-auc_results %>%
-    left_join(age) %>%
-    ggplot(aes(
-        y = AUC,
-        col = Antigen,
-        x = age_grp
-    )) + 
-    geom_jitter(alpha = 0.5) +
-    facet_wrap(~Antigen, nrow = 1) + 
-    theme_minimal() +
-    labs(x = "Age group") +
-    ggpubr::stat_compare_means() +
-    guides(col = "none") +
-    scale_colour_manual(values = StrepA_colscheme)   +
-    theme_universal(base_size = 10) +
-    theme(
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
-    )
-
     
 
 ######################
 ######################
 
 
-#sense check: 
+# Upset plots to visualse the events distributions and visualise differences between 
+# protection focused events and response focused events 
 
-load("data/all_events_long_incidence_wgs.RData")
+
+# Load dataframe defining protection focused events: 
 load("data/all_events_long_immunology.Rdata")
+
+# Load datframe defining response focused events 
+load("data/all_events_long_incidence_wgs.RData")
 
 shelf(gridExtra,UpSetR, wesanderson, grid)
 
@@ -873,6 +741,7 @@ print(incidence_summary)
 all_events_long_immunology <- all_events_long_immunology %>%
     mutate(unique_id = paste(pid, date, sep = "_"))
 
+
 all_events_long_incidence_wgs <- all_events_long_incidence_wgs %>%
     mutate(unique_id = paste(pid, date, sep = "_"))
 
@@ -895,17 +764,6 @@ upset_data_immunology <- as.data.frame(upset_data_immunology)
 # Set the output to a PNG file with 300 DPI
 png("R_output/supp_05_fig04.png", width = 1020 /96, height = 530 / 96, units = "in", res = 300)
 
-
-
-#upset(upset_data_immunology, 
-#      nsets = 6, 
-#      order.by = "freq",
-#      sets = c("Carriage", "Disease", "Skin Carriage", "Throat Carriage", "Skin Disease", "Throat Disease"),
-#      sets.x.label = "Event type",
-#
-#      text.scale = 1.2,
-#      keep.order = TRUE,
-#      main.bar.color = "lightgreen")
 
 upset(
     upset_data_immunology, 

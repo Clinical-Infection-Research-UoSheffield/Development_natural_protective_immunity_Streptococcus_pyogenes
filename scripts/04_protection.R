@@ -1048,8 +1048,8 @@ glmer_adjusted_piecewise <- function(path_to_titre.df, sample, class, var_name =
                                     + (1 | pid) + (1 | hid), data = final_df_5, family = binomial)
     
     tb1 <- model_above_only %>%
-        tbl_regression(exponentiate = TRUE) %>%
-        add_nevent() %>%
+        tbl_regression(exponentiate = TRUE,
+                       pvalue_fun = format_p_value) %>%
         bold_p(t = 0.05) %>%
         modify_header(list(label ~ paste(sample, class, "titre"))) 
     
@@ -1127,6 +1127,12 @@ for (ag in Antigen_list) {
 
 adjusted_model_output
 
+
+# Combine the gtsummary tables
+combined_table <- tbl_merge(tbl_list,
+                            tab_spanner = names(tbl_list))
+
+combined_table
 #######################################################
 ###### Plot forest plots ############
 

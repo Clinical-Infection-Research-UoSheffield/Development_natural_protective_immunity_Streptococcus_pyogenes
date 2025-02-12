@@ -89,7 +89,7 @@ shelf(FSA)
 
 # Import baseline dataframes
 
-df_titre <- readRDS("data/M_CRC_baseline_no_disease.RDS")
+df_titre <- readRDS("R_objects/M_CRC_baseline_no_disease.RDS")
 
 n1 <- df_titre %>% pull(pid) %>% unique() %>% length()
 
@@ -593,6 +593,8 @@ dev.off()
 # - regression summary, visualization, AIC, and predicted probability data.
 
 
+load("data/all_events_long_incidence_wgs.Rdata")
+
 create_regression_dataframe_glmer_test <- function(path_to_titre.df,sample,class, next_event_window = 45, var_name = "titre", antigen, df = 1,slice_window = 0.1) {
     
     
@@ -880,7 +882,6 @@ create_regression_dataframe_glmer_test <- function(path_to_titre.df,sample,class
     
 }
 
-#load("R_objects/all_events_long_incidence_wgs.RData")
 AIC_glmer <- data.frame(Antigen = character(), AIC_glmer = numeric(), stringsAsFactors = FALSE)
 
 result <- create_regression_dataframe_glmer_test(path_to_titre.df =  M_protection_df,
@@ -1189,63 +1190,16 @@ create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sampl
     stopifnot("pid" %in% names(final_df_3))
     
     
-    model <- lme4::glmer(event_next_n ~ titre + titre_above_threshold + (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model1 (M + ", antigen, " above transitionpoint):", AIC(model)))
     
     model2 <- lme4::glmer(event_next_n ~ titre + titre_above_threshold + age_grp + sex + hhsize+  (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
     
     print(paste0("model2 (M + ", antigen, " above transitionpoint -fully adjusted):", AIC(model2)))
-    
-    model3 <- lme4::glmer(event_next_n ~ titre + titre_above_threshold + age_grp + (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model3 (M + ", antigen, " above transitionpoint + age_grp):", AIC(model3)))
-    
-    model4 <- lme4::glmer(event_next_n ~ titre_above_threshold  + age_grp + sex + hhsize+  (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model4 (", antigen, " above transitionpoint  -fully adjusted only - No M):", AIC(model4)))
-    
-    model5 <- lme4::glmer(event_next_n ~ titre_above_threshold  + (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model5 (", antigen, " above transitionpoint  -fully adjusted only - No M):", AIC(model5)))
-    
-    model6 <- lme4::glmer(event_next_n ~ titre + (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model6 (M only):", AIC(model6)))
-    
-    model7 <- lme4::glmer(event_next_n ~ titre + age_grp + sex + hhsize+  (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model7 (M only -fully adjusted):", AIC(model7)))
-    
-    model8 <- lme4::glmer(event_next_n ~ titre * titre_above_threshold + age_grp + sex + hhsize+  (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model8 (M + ", antigen, " above transitionpoint incl. interaction -fully adjusted):", AIC(model8)))
-    
-    model9 <- lme4::glmer(event_next_n ~ titre + titre_above_threshold + age_grp + sex +  (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model9 (M + ", antigen, " above transitionpoint + age + sex):", AIC(model9)))
-    
-    
-    
-    print(model8%>%
-              tbl_regression(exponentiate = TRUE) %>%
-              add_nevent() %>%
-              bold_p(t = 0.05)) 
-    
-    tb1 <- model %>%
-        tbl_regression(exponentiate = TRUE) %>%
-        add_nevent() %>%
-        bold_p(t = 0.05)  # Modify header here 
     
     tb2 <- model2 %>%
         tbl_regression(exponentiate = TRUE) %>%
         add_nevent() %>%
         bold_p(t = 0.05) 
     
-    tb3 <- model3 %>%
-        tbl_regression(exponentiate = TRUE) %>%
-        add_nevent() %>%
-        bold_p(t = 0.05) 
     
     
     # Use broom::tidy to extract model2 results
@@ -1295,10 +1249,7 @@ create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sampl
 ###### Deploy this function on the protection dataframe ########
 ################################################################
 
-
-tb1_list <- list()
 tb2_list <- list()
-tb3_list <- list()
 plot_list <- list()
 plot_row_list <- list()
 
@@ -1318,9 +1269,7 @@ for (ag in Antigen_list) {
         antigen = ag
     )
     
-    tb1_list[[ag]] <- results$tb1
     tb2_list[[ag]] <- results$tb2
-    tb3_list[[ag]] <- results$tb3
     plot_list[[ag]] <- results$plot
     
     # Combine three plots into one row (shared fill scale is automatic if using ggplot)
@@ -1338,13 +1287,9 @@ combined_plot <- cowplot::plot_grid(plotlist = plot_row_list, ncol = 3, align = 
 
 plot_09_fig06_panelF <- combined_plot
 plot_09_fig06_panelF
-tbl_merge( tb1_list,
-           tab_spanner = Antigen_list)
+
 
 tbl_merge( tb2_list,
-           tab_spanner = Antigen_list)
-
-tbl_merge( tb3_list,
            tab_spanner = Antigen_list)
 
 # Display all plots
