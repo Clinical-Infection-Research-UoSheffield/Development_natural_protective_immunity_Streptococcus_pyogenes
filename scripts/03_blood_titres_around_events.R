@@ -822,9 +822,6 @@ table(all_events_long_immunology$visit, all_events_long_immunology$gas_carriage)
 ####### fin  #########
 ######################
 
-
-
-
 # keep only plot objects
 
 # List all objects in the environment
