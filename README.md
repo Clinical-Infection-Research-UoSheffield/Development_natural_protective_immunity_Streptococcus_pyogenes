@@ -41,7 +41,7 @@ The following R packages are required for the analyses. The librarian package wi
 
 ## License
 
-This dataset is licensed under the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)** license.
+This repository is licensed under the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)** license.
 
 You are free to:
 
