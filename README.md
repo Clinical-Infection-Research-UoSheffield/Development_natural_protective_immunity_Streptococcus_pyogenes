@@ -12,7 +12,7 @@ Code to reproduce analyses from SpyCATS longitudinal study of immunity to Strep 
 
 IDs are anonymized by mapping them to randomly generated codes, all dates are uniformly offset by a constant to preserve time intervals while concealing actual dates, and exact ages are replaced with pseudo-ages randomly generated within defined age groups.
 
-Upon publication data to reproduce analyses will be made publically available
+Upon publication data to reproduce analyses will be made publically available, hosted on Zenodo at <insert DOI url>
 
 ## Repository Structure
 
