@@ -4,7 +4,7 @@ Code to reproduce analyses from the SpyCATS longitudinal study of immunity to *S
 
 ---
 
-## 📄 **Description**
+## **Description**
 
 This repository contains the code to reproduce analyses from the manuscript entitled:  
 **"Early life serological profiles and the development of natural protective humoral immunity to *Streptococcus pyogenes* in a high burden setting."**
@@ -17,7 +17,7 @@ This repository contains the code to reproduce analyses from the manuscript enti
 
 ---
 
-## 🔒 **Data Anonymisation**
+## **Data Anonymisation**
 
 - IDs are anonymized by mapping them to randomly generated codes.
 - All dates are uniformly offset by a constant to preserve time intervals while concealing actual dates.
@@ -27,7 +27,7 @@ Upon publication, data to reproduce analyses will be made publicly available, ho
 
 ---
 
-## 📂 **Repository Structure**
+## **Repository Structure**
 
 ```
 .
@@ -42,7 +42,7 @@ Upon publication, data to reproduce analyses will be made publicly available, ho
 
 ---
 
-## 💻 **Prerequisites**
+## **Prerequisites**
 
 Ensure you have R installed on your system. You will also need the librarian package version (1.8.1) to manage dependencies.
 
@@ -55,7 +55,7 @@ Ensure you have R installed on your system. You will also need the librarian pac
 
 ---
 
-## 📦 **Installing Dependencies**
+## **Installing Dependencies**
 
 The following R packages are required for the analyses. The `librarian` package will ensure all dependencies are installed and loaded without needing to install each package individually:
 
@@ -92,14 +92,14 @@ The following R packages are required for the analyses. The `librarian` package 
 
 ---
 
-## 🧑‍🔬 **Instructions for Use**
+## **Instructions for Use**
 
-### 📥 **Import Data:**
+### **Import Data:**
 
 Run the `load_data.R` script to automatically download and import the anonymized dataset from the Zenodo depository.  
 The data will be made publicly available upon publication from **<insert DOI url>**.
 
-### 📊 **Reproduce Analyses:**
+### **Reproduce Analyses:**
 
 Work through the scripts sequentially to reproduce the analyses presented in the manuscript. The recommended order is as follows:
 ```
@@ -115,7 +115,7 @@ All output files, including figures, tables, and statistical summaries, will be 
 
 ---
 
-## 🔐 **License**
+## **License**
 
 This repository is licensed under the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)** license.
 
@@ -130,4 +130,4 @@ This repository is licensed under the **Creative Commons Attribution-NonCommerci
 - **NoDerivatives:** If you remix, transform, or build upon the material, you may not distribute the modified version.  
 
 For full license details, see:  
-🔗 **[Creative Commons License](https://creativecommons.org/licenses/by-nc-nd/4.0/)**  
+**[Creative Commons License](https://creativecommons.org/licenses/by-nc-nd/4.0/)**  
