@@ -12,7 +12,7 @@ Code to reproduce analyses from SpyCATS longitudinal study of immunity to Strep 
 
 IDs are anonymized by mapping them to randomly generated codes, all dates are uniformly offset by a constant to preserve time intervals while concealing actual dates, and exact ages are replaced with pseudo-ages randomly generated within defined age groups.
 
-Upon publication data to reproduce analyses will be made publically available, hosted on Zenodo at "<insert DOI url>"
+Upon publication data to reproduce analyses will be made publically available, hosted on Zenodo at "DOI url"
 
 ## Repository Structure
 
@@ -82,7 +82,7 @@ wesanderson (0.3.7)
 
 ### Import Data:
 
-Run the load_data.R script to automatically download and import the anonymized dataset from the Zenodo depository. The data will be made publicly available upon publication from "<insert DOI url>". 
+Run the load_data.R script to automatically download and import the anonymized dataset from the Zenodo depository. The data will be made publicly available upon publication from "DOI url". 
 
 ### Reproduce Analyses:
 Work through the scripts sequentially to reproduce the analyses presented in the manuscript. The recommended order is as follows:
