@@ -51,6 +51,7 @@ Ensure you have R installed on your system. You will also need the librarian pac
 - **Operating System:** The code has been tested on:  
   - macOS 14.5  
 
+Typical installation and run time is several minutes. 
 
 ---
 
@@ -108,7 +109,7 @@ Work through the scripts sequentially to reproduce the analyses presented in the
 - `04_protection.R`  
 - `05_M_type_specific_analysis.R`  
 ```
-### 📁 **Review Results:**
+### **Review Results:**
 
 All output files, including figures, tables, and statistical summaries, will be saved in the **`R_output`** directory for easy access.
 
