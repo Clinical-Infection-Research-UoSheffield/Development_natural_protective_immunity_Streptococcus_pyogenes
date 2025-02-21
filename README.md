@@ -78,9 +78,9 @@ tidyverse (2.0.0)
 UpSetR (1.4.0)
 wesanderson (0.3.7)
 
-##Instructions for Use
+## Instructions for Use
 
-###Import Data:
+### Import Data:
 
 Run the load_data.R script to automatically download and import the anonymized dataset from the Zenodo depository. The data will be made publicly available upon publication from <insert DOI url>. 
 
