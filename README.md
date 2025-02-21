@@ -23,7 +23,7 @@ This repository contains the code to reproduce analyses from the manuscript enti
 - All dates are uniformly offset by a constant to preserve time intervals while concealing actual dates.
 - Exact ages are replaced with pseudo-ages randomly generated within defined age groups.
 
-Upon publication, data to reproduce analyses will be made publicly available, hosted on Zenodo at **<insert DOI url>**.
+Upon publication, data to reproduce analyses will be made publicly available, hosted on Zenodo at DOI:...
 
 ---
 
@@ -50,8 +50,7 @@ Ensure you have R installed on your system. You will also need the librarian pac
 - **RStudio:** Optional, but recommended for ease of use.  
 - **Operating System:** The code has been tested on:  
   - macOS 14.5  
-  - Windows 10 and 11  
-  - Ubuntu 20.04 LTS and later  
+
 
 ---
 
@@ -97,7 +96,7 @@ The following R packages are required for the analyses. The `librarian` package 
 ### **Import Data:**
 
 Run the `load_data.R` script to automatically download and import the anonymized dataset from the Zenodo depository.  
-The data will be made publicly available upon publication from **<insert DOI url>**.
+The data will be made publicly available upon publication from DOI:...
 
 ### **Reproduce Analyses:**
 
