@@ -47,7 +47,7 @@ Upon publication, data to reproduce analyses will be made publicly available, ho
 Ensure you have R installed on your system. You will also need the librarian package version (1.8.1) to manage dependencies.
 
 - **R Version:** Requires **R version 4.4.0** or later.  
-- **RStudio:** Optional, but recommended for ease of use.  
+- **RStudio:** Version 2024.04.2+764 (2024.04.2+764) of later   
 - **Operating System:** The code has been tested on:  
   - macOS 14.5  
 
@@ -109,9 +109,14 @@ Work through the scripts sequentially to reproduce the analyses presented in the
 - `04_protection.R`  
 - `05_M_type_specific_analysis.R`  
 ```
+
+Analyses should be viewed directly within **RStudio**. The output will be displayed through plots, tables, and console outputs within the RStudio environment.
+
+---
+
 ### **Review Results:**
 
-All output files, including figures, tables, and statistical summaries, will be saved in the **`R_output`** directory for easy access.
+To review results, load the scripts in **RStudio** and run them interactively. The figures, tables, and statistical summaries will be displayed directly in the **Plots** and **Viewer** panels or within the **Console**. 
 
 ---
 
