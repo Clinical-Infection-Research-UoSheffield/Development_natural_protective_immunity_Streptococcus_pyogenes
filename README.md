@@ -34,10 +34,71 @@ scripts: Contains R scripts used for data analysis and visualization.
 
 
 ##  Prerequisites
-Ensure you have R installed on your system. You will also need the librarian package to manage dependencies.
+
+Ensure you have R installed on your system. You will also need the librarian package version(1.8.1) to manage dependencies.
+
+R Version: Requires R version 4.4.0 or later.
+RStudio is optional, but recommended for ease of use.
+
+Operating System: The code has been tested on:
+macOS 14.5
 
 ## Installing Dependencies
-The following R packages are required for the analyses. The librarian package will ensure all dependencies are installed and loaded:
+
+The following R packages are required for the analyses. The librarian package will ensure all dependencies are installed and loaded without having to install each package individually:
+
+broom (1.0.6)
+broom.mixed (0.2.9.5)
+CorrMixed (1.1)
+corrplot (0.92)
+cowplot (1.1.3)
+dplyr (1.1.4)
+dunn.test (1.3.6)
+flextable (0.9.6)
+forcats (1.0.0)
+FSA (0.9.5)
+ggdist (3.3.2)
+ggplot2 (3.5.1)
+ggpubr (0.6.0)
+grid (4.4.0)
+gridExtra (2.3)
+gtsummary (2.0.0)
+librarian (1.8.1)
+lme4 (1.1-35.5)
+lmerTest (3.1-3)
+mfp (1.5.4.1)
+officer (0.6.6)
+patchwork (1.2.0)
+pheatmap (1.0.12)
+psych (2.4.6.26)
+splines (4.4.0)
+survival (3.7-0)
+tidyr (1.3.1)
+tidyverse (2.0.0)
+UpSetR (1.4.0)
+wesanderson (0.3.7)
+
+##Instructions for Use
+
+###Import Data:
+
+Run the load_data.R script to automatically download and import the anonymized dataset from the Zenodo depository. The data will be made publicly available upon publication from <insert DOI url>. 
+
+### Reproduce Analyses:
+Work through the scripts sequentially to reproduce the analyses presented in the manuscript. The recommended order is as follows:
+
+```R
+
+source("scripts/01_mother_child_pairs.R")
+source("scripts/02_blood_IgG_baseline.R")
+source("scripts/03_blood_titres_around_events.R")
+source("scripts/04_protection.R")
+source("scripts/05_M_type_specific_analysis.R")
+
+```
+
+### Review Results:
+All output files, including figures, tables, and statistical summaries, will be saved in the R_output directory for easy access.
 
 ## License
 
