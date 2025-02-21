@@ -35,11 +35,11 @@ Upon publication, data to reproduce analyses will be made publicly available, ho
 ├── data             # Contains processed data files (empty initially)  
 ├── R_output         # Output from R scripts (figures, summaries)  
 └── scripts          # R scripts for data analysis and visualization  
-
+```
 - **data:** Contains processed data files.  
 - **R_output:** Contains output from R scripts, such as figures and summaries.  
 - **scripts:** Contains R scripts used for data analysis and visualization.  
-```
+
 ---
 
 ## 💻 **Prerequisites**
