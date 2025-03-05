@@ -700,10 +700,10 @@ sprintf("Longitudinal blood IgG profiles in participants (n=%i) without microbio
 # protection focused events and response focused events 
 
 
-# Load dataframe defining protection focused events: 
+# Load datframe defining response focused events 
 load("data/all_events_long_immunology.Rdata")
 
-# Load datframe defining response focused events 
+# Load dataframe defining protection focused events: 
 load("data/all_events_long_incidence_wgs.RData")
 
 shelf(gridExtra,UpSetR, wesanderson, grid)
