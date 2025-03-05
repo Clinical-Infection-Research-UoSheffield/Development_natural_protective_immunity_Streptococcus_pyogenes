@@ -1,4 +1,4 @@
-# Title: Analysis of IgG Titres and Their Association with Strep A Event Risk
+# Title: The association between IgG level and culture-confirmed S pyogenes events 
 # Version: 2.0
 # Date: 2025-01-12
 # Author: Alexander J Keeley
@@ -16,7 +16,7 @@
 
 # Description:
 #
-# This script examines the relationship between blood IgG titres and the risk of Strep A-related events.
+# This script examines the relationship between blood IgG titres and the risk of S pyogenes-related events.
 # Key components of the analysis include:
 #
 # 1. Loading appropriate functions and dataframes
