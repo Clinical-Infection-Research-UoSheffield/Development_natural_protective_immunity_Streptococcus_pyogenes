@@ -1,3 +1,52 @@
+# Title: Analysis of IgG Titres and Their Association with Strep A Event Risk
+# Version: 2.0
+# Date: 2025-01-12
+# Author: Alexander J Keeley
+
+# Inputs: 
+#   - data/blood_IgG_titres.RDS
+#   - data/incidence_start_dates.RDS
+#   - data/SpyCATS_incidence_df.RDS
+#   - data/survivial_df_blood_IgG.RDS
+
+# Outputs: 
+#   - Plots visualizing IgG titre distributions and event probabilities
+#   - Statistical models assessing relationships between IgG levels and event risk
+#   - Regression tables summarizing Cox PH survival analyses and logistic regression models
+
+# Description:
+#
+# This script examines the relationship between blood IgG titres and the risk of Strep A-related events.
+# Key components of the analysis include:
+#
+# 1. Loading appropriate functions and dataframes
+# 2. Calculation of event probabilities at different IgG level thresholds.
+# 3. Mixed-effects regression models to assess impact of IgG levels on event occurrence within 45 days.
+# 4. Determination of optimal titre thresholds for a piecewise regression using AIC-based model comparisons.
+# 5. Piecewise logistic regression analysis including estimatation of putative 50% protective thresholds.
+# 6. Orthogonal Anderson Gill extension of Cox proportional hazards modeling to analyze time-to-event relationships.
+
+### Date Anonymisation for Public Data Sharing
+#
+# To protect the confidentiality of individual participants, all date values have been anonymised.
+# This is achieved by adding a constant offset (offset_days) to each date field (e.g., visit_date, incidence date, enrollment date).
+# The offset preserves the relative intervals between dates (so the timing and spacing of events remains accurate),
+# but it prevents the disclosure of the actual calendar dates.
+# This approach ensures that while the temporal relationships within the data are maintained, individual identification is minimized.
+
+
+# Requirements:
+
+# Package  Version
+# cowplot     cowplot    1.1.3
+# flextable flextable    0.9.6
+# forcats     forcats    1.0.0
+# lme4           lme4 1.1-35.5
+# officer     officer    0.6.6
+# patchwork patchwork    1.2.0
+
+
+# Setup the environement and load functions
 source("scripts/setup_environment.R")
 source("scripts/load_functions.R")
 
@@ -11,13 +60,6 @@ output_dir <- "R_output/"
 shelf(officer,flextable)
 
 
-### Date Anonymisation for Public Data Sharing
-#
-# To protect the confidentiality of individual participants, all date values have been anonymised.
-# This is achieved by adding a constant offset (offset_days) to each date field (e.g., visit_date, incidence date, enrollment date).
-# The offset preserves the relative intervals between dates (so the timing and spacing of events remains accurate),
-# but it prevents the disclosure of the actual calendar dates.
-# This approach ensures that while the temporal relationships within the data are maintained, individual identification is minimized.
 
 # The number of individuals with titre measured 
 
