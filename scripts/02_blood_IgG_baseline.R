@@ -302,7 +302,7 @@ dev.off()
 
 # Import 50% putative thresholds: generated in 07_protection.R scripts 
 
-protective_threshold <- readRDS("R_objects/bloodIgG_protective_threshold_df.RDS")
+protective_threshold <- readRDS("data/bloodIgG_protective_threshold_df.RDS")
 
 
 
