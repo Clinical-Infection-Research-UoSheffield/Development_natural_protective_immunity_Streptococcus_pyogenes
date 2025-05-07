@@ -50,11 +50,7 @@ final_dems %>%
 # This approach maintains the overall age group distribution and supports reproducibility of analyses,
 # while significantly reducing the risk of re-identifying individual participants.
 
-# run this line to source annoymised publically available data 
-#df <- readRDS("data/baseline_blood_no_disease_titres.RDS")  
-
-# run this line to source original data -> not annonymised only for manuscript revisions 
-df <- readRDS("R_objects/baseline_blood_no_disease_titres.RDS")
+df <- readRDS("data/baseline_blood_no_disease_titres.RDS")  
 
 # create an empty dataframe to append the output of your for loop
 centile_df <- data.frame()
@@ -300,10 +296,118 @@ corrplot::corrplot.mixed(cor_matrix, upper = "color", lower = "number",
 
 dev.off()
 
+##############################################################################
+#### Describe baseline titres in relation to putative 50% protective thresholds 
+##############################################################################
+
+# Import 50% putative thresholds: generated in 07_protection.R scripts 
+
+protective_threshold <- readRDS("data/bloodIgG_protective_threshold_df.RDS")
 
 
 
-###########
+# Calculate percentages of participants at study baseline with IgG above
+# putative 50% threshold for each Antigen
+
+df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold, by = join_by(Antigen)) %>%  # Correct join
+    mutate(above_threshold = ifelse(titre > Threshold, 1, 0)) %>%
+    ungroup() %>%
+    select(Antigen, above_threshold) %>%
+    gtsummary::tbl_summary(by = Antigen)
+
+percentage_labels <- df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold, by = join_by(Antigen)) %>%  # Correct join
+    mutate(above_threshold = ifelse(titre > Threshold, 1, 0)) %>%
+    group_by(Antigen) %>%
+    summarise(
+        n = n(),
+        n_above = sum(above_threshold),  # Sum the `above_threshold` column to count occurrences
+        percentage_above = mean(above_threshold) * 100  # Calculate the mean percentage
+    ) %>%
+    mutate(label = paste0(round(percentage_above, 0), "%"))  # Create a label for annotation
+
+
+# Dynamically create summary sentence
+sentence <- sprintf(
+    "At baseline, antibody levels from the cohort showed that %d individuals (%s) for SLO, %d (%s) for SpyAD, and %d (%s) for SpyCEP had IgG levels above the protective thresholds (Figure 5A).",
+    percentage_labels$n_above[percentage_labels$Antigen == "SLO"], 
+    percentage_labels$label[percentage_labels$Antigen == "SLO"], 
+    percentage_labels$n_above[percentage_labels$Antigen == "SpyAD"], 
+    percentage_labels$label[percentage_labels$Antigen == "SpyAD"], 
+    percentage_labels$n_above[percentage_labels$Antigen == "SpyCEP"], 
+    percentage_labels$label[percentage_labels$Antigen == "SpyCEP"]
+)
+
+# Print the sentence
+print(sentence)
+
+# Demonstrate the percentage above 50% thresholds at each age group for each antigen 
+
+df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold) %>%
+    mutate(above_threshold = ifelse(titre > Threshold, 1,0)) %>%
+    group_by(age_grp, Antigen) %>%
+    summarise(
+        proportion_protected = round(mean(above_threshold)*100, 0)) %>%
+    spread(Antigen, proportion_protected)
+
+
+# Plot age vs titre and the proportion above the putatuve 50% protective threshold
+
+df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold, by = join_by(Antigen)) %>%  # Correct join
+    mutate(above_threshold = ifelse(titre > Threshold, 1, 0)) %>%
+    ggplot(aes(x = age, y = titre, col = factor(above_threshold))) +  # Use factor to color by above/below threshold
+    guides(color = "none") +
+    facet_wrap(~Antigen) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(values = c("#d73027","#7570b3")) +
+    labs(
+        y = "IgG level (log10 RLU/mL)",
+        x = 'Age'
+        # title = "Blood IgG titres above 50% protective threshold by age group"
+    ) +
+    geom_hline(aes(yintercept = Threshold), linetype = "dashed", color = "red") +  # Reference Threshold correctly
+    theme_minimal() +
+    theme_universal(base_size = plot_basesize) +
+    # Annotate percentages
+    geom_text(
+        data = percentage_labels,
+        aes(x = Inf, y = Inf, label = label),  # Place in top-right corner
+        inherit.aes = FALSE, hjust = 1.2, vjust = 1.2, 
+        size = plot_basesize
+    )
+
+
+# Plot age group vs titre and the proportion above the putatuve 50% protective threshold
+
+
+
+df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold) %>%
+    mutate(above_threshold = ifelse(titre > Threshold, 1,0)) %>%
+    group_by(age_grp, Antigen) %>%
+    summarise(
+        proportion_protected = mean(above_threshold)) %>%
+    ggplot(aes(x = age_grp, y = proportion_protected, fill = Antigen)) +
+    scale_fill_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +
+    guides(fill = "none") +
+    facet_wrap(~Antigen) +
+    geom_col(alpha = 0.7) +
+    labs(
+        title = "Proportion of participants with baseline titres above 50% protected threshold",
+        x = "Age Group",
+        y = "Proportion"
+    ) +
+    theme_minimal() 
+
+
 
 
 
@@ -319,7 +423,3 @@ plot_objects <- grep("plot_", all_objects, value = TRUE, ignore.case = TRUE)
 rm(list = setdiff(all_objects, plot_objects), envir = .GlobalEnv)
 
 rm(all_objects,plot_objects,keep_plot_objects)
-
-
-
-
