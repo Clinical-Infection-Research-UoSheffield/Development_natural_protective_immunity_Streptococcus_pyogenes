@@ -57,7 +57,7 @@ output_dir <- "R_output/"
 
 # load packages:
 
-shelf(officer,flextable)
+shelf(officer,flextable,lme4)
 
 
 
@@ -428,6 +428,9 @@ print(AIC_glmer)
 supp_fig3_protection_V3.0_261124 <- combined_plot
 supp_fig3_protection_V3.0_261124 
 
+
+
+
 ##### ##### ##### ##### ##### ##### ##### ##### ### 
 ##### determine optimal breakpoint threshold: ##### 
 ##### ##### ##### ##### ##### ##### ##### ##### ###
@@ -572,23 +575,189 @@ all_aics %>%
     ) +
     theme_minimal() 
 
+
+#############################################################################
+###### Estimate 50% protective thresholds via k-fold validation model #######
+#############################################################################
+
+# estimate_protective_threshold:
+# Computes the IgG titre at which the predicted risk of GAS event is 50% of the maximum probability, 
+# using a piecewise logistic mixed-effects model fitted above a previsouly defined transition point
+
+# cross_validate_threshold:
+# Performs 10-fold cross-validation of the threshold estimation process.
+# For each fold, recomputes the 50% protective threshold on the training data.
+# Returns the cross-validated mean threshold, standard deviation, and 95% CI.
+
+# Output:
+# cv_thresholds_df – a data frame with cross-validated mean 50% protective thresholds and uncertainty bounds for each antigen.
+
+estimate_protective_threshold <- function(data_subset, antigen, next_event_window = 45) {
+    
+    
+    # Read titre data and merge with start dates and age, adjust visit dates, and categorize titres
+    fun_titres <- data_subset %>%
+        left_join(start_dates) %>%
+        left_join(age) %>%
+        mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1) %>%
+        group_by(Antigen) %>%
+        ungroup()
+    
+    # Filter for specific antigen
+    antigen_df <- fun_titres %>% filter(Antigen == antigen & !is.na(pid)) 
+    
+    pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
+    
+    # Prepare event data
+    fun_df <- pos_incidence_zero %>%
+        select(pid, date, gas_event) %>%
+        arrange(pid, date) %>%
+        group_by(pid) %>%
+        mutate(
+            next_date = lead(date),
+            check = next_date - date,
+            event_next_n = case_when(
+                next_date - date <= next_event_window & lead(gas_event) == 1 ~ 1,
+                next_date  - date <= next_event_window & lead(gas_event) == 0 ~ 0,
+                next_date -date > next_event_window ~ NA
+            )) %>%
+        select(-next_date) %>%
+        ungroup()
+    
+    # identify the antigen specific transition point 
+    titre_breakpoint <- titre_breakpoint_df %>%
+        filter(Antigen == antigen) %>%
+        pull(transition_point)
+    
+    
+    final_df_3  <-fun_df %>%
+        left_join(antigen_df %>% 
+                      select(pid, date = visit_date, titre, age)) %>%
+        group_by(pid) %>%
+        fill(titre) %>%
+        ungroup() %>%
+        mutate(hid = substring(pid, 1, 3))
+    
+    final_df_5 <- final_df_3 %>%
+        mutate(titre_below_threshold = ifelse(titre <= titre_breakpoint, titre, titre_breakpoint),
+               titre_above_threshold = ifelse(titre > titre_breakpoint, titre - titre_breakpoint, 0))
+    
+    # Fit logistic model to above-threshold data
+    model <- glmer(event_next_n ~ titre_above_threshold + (1 | pid) + (1 | hid),
+                   data = final_df_5, family = binomial)
+    
+    # Predict max and threshold probability
+    max_prob <- predict(model, newdata = data.frame(
+        titre_below_threshold = titre_breakpoint, 
+        titre_above_threshold = 0), type = "response", re.form = NA)
+    
+    threshold_prob <- 0.5 * max_prob
+    
+    titre_seq <- seq(0, max(final_df_5$titre_above_threshold, na.rm = TRUE), length.out = 1000)
+    probs_for_threshold <- predict(model, newdata = data.frame(
+        titre_below_threshold = titre_breakpoint,
+        titre_above_threshold = titre_seq), type = "response", re.form = NA)
+    
+    titre_50 <- titre_seq[which.min(abs(probs_for_threshold - threshold_prob))]
+    
+    return(titre_50 + titre_breakpoint)
+}
+
+cross_validate_threshold <- function(full_data, antigen, k = 10) {
+    set.seed(342)  # This is a random number - set for reproducibility
+    folds <- sample(rep(1:k, length.out = nrow(full_data)))
+    
+    threshold_estimates <- numeric(k)
+    
+    for (i in 1:k) {
+        train_data <- full_data[folds != i, ]
+        
+        threshold_estimates[i] <- estimate_protective_threshold(
+            data_subset = train_data,
+            antigen = antigen
+        )
+    }
+    
+    summary_df <- tibble(
+        Antigen = antigen,
+        Mean_Threshold = mean(threshold_estimates, na.rm = TRUE),
+        SD = sd(threshold_estimates, na.rm = TRUE),
+        CI_Lower = quantile(threshold_estimates, 0.025, na.rm = TRUE),
+        CI_Upper = quantile(threshold_estimates, 0.975, na.rm = TRUE),
+        Thresholds = list(threshold_estimates)
+    )
+    
+    return(summary_df)
+}
+
+antigen_list <- c("SLO", "SpyAD", "SpyCEP")
+cv_results_list <- list()
+
+for (ag in antigen_list) {
+    res <- cross_validate_threshold(
+        full_data = readRDS("data/blood_IgG_titres.RDS"),
+        antigen = ag
+    )
+    
+    cv_results_list[[ag]] <- res
+}
+
+cv_thresholds_df <- bind_rows(cv_results_list)
+print(cv_thresholds_df)
+
+# Exponentiate and format the thresholds
+formatted_thresholds <- cv_thresholds_df %>%
+    mutate(
+        Mean_exp = 10^Mean_Threshold,
+        CI_Lower_exp = 10^CI_Lower,
+        CI_Upper_exp = 10^CI_Upper,
+        sentence = sprintf("%.0f (CI %.0f–%.0f) RLU/mL", Mean_exp, CI_Lower_exp, CI_Upper_exp)
+    )
+
+formatted_thresholds
+
+# Construct the sentence
+final_sentence <- sprintf(
+    "These thresholds were %s for SLO, %s for SpyAD, and %s for SpyCEP.",
+    formatted_thresholds$sentence[formatted_thresholds$Antigen == "SLO"],
+    formatted_thresholds$sentence[formatted_thresholds$Antigen == "SpyAD"],
+    formatted_thresholds$sentence[formatted_thresholds$Antigen == "SpyCEP"]
+)
+
+cat(final_sentence)
+
+protective_threshold_df <- 
+    formatted_thresholds %>%
+    select(Antigen, Threshold = Mean_Threshold)
+
+saveRDS(protective_threshold_df, "data/bloodIgG_protective_threshold_df.RDS")
+
 ###############################################################
 ########### perform piecewise logistic regression #############
 ###############################################################
 
-# plot_probabilites_piecewise: Evaluates the relationship between IgG titre and event occurrence using piecewise logistic regression
-#
+# plot_probabilites_piecewise:
+# Evaluates the relationship between IgG titre and subsequent GAS event risk using piecewise logistic regression.
+
 # Inputs: titre data file (path_to_titre.df), incidence dataframe 
 
 # Process:
-#   1. Merge titre data with start_dates and age; adjust visit dates relative to enrolment and filter by antigen.
-#   2. Prepare event data (compute event_next_n) and merge with titre records.
-#   3. Fit logistic regression models (overall and piecewise using a pre-defined breakpoint) and compute predictions.
-#   4. Generate plots: event probability vs titre threshold, prediction curves with confidence intervals, and titre density.
-#   5. Calculate a putative 50% protective threshold for each antigen (0.5 the probability of event_next_n compared to transition point)
-
-
-# Output: Returns a list containing model summaries, prediction tables, and the generated plots.
+#   1. Merges IgG titre data with enrolment and demographic information, aligns visit dates relative to baseline.
+#   2. Constructs a time-to-event outcome variable (event_next_n) within `next_event_window` using GAS event data.
+#   3. Fits piecewise logistic regression with titres segmented below and above a fixed transition point.
+#   4. Applies a previously computed 10-fold cross-validated threshold to highlight estimated 50% protective titre.
+#   5. Generates:
+#      - Plot 1: Empirical probability of subsequent infection vs titre
+#      - Plot 2: Model-predicted probability curve with confidence bands, odds ratios, and the cross-validated threshold with CI
+#      - Plot 3: Distribution of titre values with the transition point overlayed
+#   6. Outputs a results list containing model summaries, plots, and metadata.
+#
+# Output:
+#   A named list with elements:
+#   - "plot1": Empirical titre-event relationship
+#   - "plot2": Model-predicted protection curve with threshold annotation
+#   - "plot3": Titre distribution density
+#   - "tb1": gtsummary output of ORs from piecewise model
 
 
 plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_event_window = 45, var_name = "titre", antigen, df = 1, slice_window = 0.1) {
@@ -638,20 +807,6 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
         ungroup() %>%
         mutate(hid = substring(pid, 1, 3))
     
-    #### 
-    
-    final_df_3 %>%
-        filter(!is.na(event_next_n)) %>%
-        ggplot(
-            aes(
-                x = titre, y = as.factor(event_next_n), colour = as.factor(event_next_n)
-            )
-        ) +
-        geom_jitter(alpha=0.5) +
-        geom_violin(alpha = 0.2) +
-        labs(x = "titre RLU/mL", y = "event at next visit") +
-        guides(col = "none") +
-        theme_minimal()
     
     
     # Remove rows with NA in titre or event_next_day
@@ -686,60 +841,6 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
     
     max_threshold <- max(probabilities$Threshold[probabilities$percent >= 97.5])
     
-    # Fit the logistic regression model
-    model <- lme4::glmer(event_next_n ~ titre + (1 | pid) + (1 | hid), data = final_df_3, family = binomial)
-    
-    tb1 <- model %>%
-        tbl_regression(exponentiate = TRUE) %>%
-        add_nevent() %>%
-        bold_p(t = 0.05) %>%
-        modify_header(list(label ~ paste(sample, class, "titre"))) 
-    
-    tb1$table_body$label <- paste0(antigen)
-    
-    # Extract Odds Ratios, CIs, and p-value
-    model_summary <- summary(model)
-    ORs <- exp(model_summary$coefficients[, "Estimate"])
-    CIs <- exp(confint(model, parm = "titre", method = "Wald"))
-    p_value <- coef(summary(model))["titre", "Pr(>|z|)"]  # Extract p-value for titre
-    
-    # Check if p-value is significant (less than 0.05) and format accordingly
-    p_label <- if (p_value < 0.05) {
-        paste0("p = ", sprintf("%.3f", p_value), "*")
-    } else {
-        paste0("p = ", sprintf("%.3f", p_value))
-    }
-    
-    # Create a sequence of titre values for predictions
-    new_data <- data.frame(titre = seq(min(final_df_3$titre, na.rm = TRUE), 
-                                       max(final_df_3$titre, na.rm = TRUE), length.out = 100))
-    new_data$prob <- predict(model, newdata = new_data, type = "response", re.form = NA)
-    
-    conf_int <- predict(model, newdata = new_data, type = "link", re.form = NA, se.fit = TRUE)
-    new_data$lower <- plogis(conf_int$fit - 1.96 * conf_int$se.fit)
-    new_data$upper <- plogis(conf_int$fit + 1.96 * conf_int$se.fit)
-    
-    ########## Plot it #############
-    plot <- ggplot(new_data, aes(x = titre, y = prob)) +
-        geom_col(data = probabilities, aes(x = Threshold, y = Probability, alpha = percent), fill = "#138aa8") +
-        geom_line(color = "blue") +
-        geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3) +
-        ylim(0, 0.15) +
-        xlim(max_threshold, max(thresholds)) +
-        labs(title = paste(sample, class, antigen),
-             x = paste0("Titre (log10 ", var_name, ")"),
-             y = paste0("Proportion with event within", next_event_window, " days")) +
-        guides(fill = "none", alpha = "none") +
-        theme_minimal() +
-        annotate("text", x = max_threshold + 0.5, y = 0.15, 
-                 label = paste0("OR: ", round(ORs[2], 2), 
-                                "\n95% CI: [", round(CIs[1, 1], 2), ", ", round(CIs[1, 2], 2), "]", 
-                                "\n", p_label), 
-                 hjust = 0) +
-        theme_universal(base_size = plot_basesize)
-    
-    
-    plot
     
     final_df_5 <-
         final_df_3 %>%
@@ -803,43 +904,6 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
     
     
     
-    
-    
-    #### calculate 50% protective threshold 
-    
-    
-    # Fit the logistic regression model
-    model2 <- lme4::glmer(event_next_n ~titre_above_threshold + (1 | pid) + (1 | hid), data = final_df_5, family = binomial)
-    
-    
-    # Step 1: Calculate maximum probability
-    max_prob <- predict(model2, newdata = data.frame(
-        titre_below_threshold = titre_breakpoint, 
-        titre_above_threshold = 0), 
-        type = "response", re.form = NA)
-    
-    # 50% of max probability
-    threshold_prob <- 0.5 * max_prob
-    
-    # Step 2: Create a sequence of titre_above_threshold values to evaluate
-    titre_seq <- seq(0, max(new_data$titre_above_threshold, na.rm = TRUE), length.out = 1000)
-    
-    # Step 3: Predict probabilities for the titre_above_threshold sequence
-    probs_for_threshold <- predict(model2, newdata = data.frame(
-        titre_below_threshold = titre_breakpoint,
-        titre_above_threshold = titre_seq), 
-        type = "response", re.form = NA)
-    
-    # Step 4: Find the titre_above_threshold corresponding to 50% max probability
-    titre_50 <- titre_seq[which.min(abs(probs_for_threshold - threshold_prob))]
-    
-    # Print results
-    cat("Titre_above_threshold for ", antigen, " where probability is 50% of the max:", titre_50 + titre_breakpoint, "\n")
-  
-    protective_threshold_df <- 
-        tibble(Antigen = antigen, Threshold = titre_50+ titre_breakpoint)
-    
-  
     ########## Plot it #############
     
     uxlm <- max(final_df_3$titre, na.rm = T)
@@ -869,25 +933,36 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
     plot
     
     
-    ########## Plot it #############
+    ########## Plot 2 #############
+    
+    titre_mean <- cv_thresholds_df$Mean_Threshold[cv_thresholds_df$Antigen == antigen]
+    titre_CI_low <- cv_thresholds_df$CI_Lower[cv_thresholds_df$Antigen == antigen]
+    titre_CI_high <- cv_thresholds_df$CI_Upper[cv_thresholds_df$Antigen == antigen]
+    
+    # Predict the event probability at the cross-validated mean threshold
+    predicted_prob_mean <- predict(model, newdata = data.frame(
+        titre_below_threshold = titre_breakpoint, 
+        titre_above_threshold = titre_mean - titre_breakpoint
+    ), type = "response", re.form = NA)
+    
+    
     plot2 <- ggplot(new_data, aes(x = titre, y = prob)) +
         geom_line(color = "blue") +
         geom_vline(xintercept = titre_breakpoint, color = "red", linetype = "dashed") +
-      #  geom_vline(xintercept = titre_breakpoint+ titre_50, color = "blue", linetype = "dashed") +
-      #  geom_hline(yintercept = threshold_prob, color = "blue", linetype = "dashed") +
+        geom_errorbarh(aes(xmin = titre_CI_low, xmax = titre_CI_high, y = 0), color = "blue", height = 0.005) +
         
-        
-        geom_segment(aes(x = titre_breakpoint + titre_50, 
-                         xend = titre_breakpoint + titre_50, 
+        geom_segment(aes(x = titre_mean, 
+                         xend = titre_mean, 
                          y = 0, 
-                         yend = threshold_prob), 
+                         yend = predicted_prob_mean), 
                      color = "blue", linetype = "dashed") +
-        # Horizontal dashed line limited to titre_breakpoint + titre_50
+        
         geom_segment(aes(x = 3, 
-                         xend = titre_breakpoint + titre_50, 
-                         y = threshold_prob, 
-                         yend = threshold_prob), 
+                         xend = titre_mean, 
+                         y = predicted_prob_mean, 
+                         yend = predicted_prob_mean), 
                      color = "blue", linetype = "dashed") +
+        
         
         geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3) +
         labs(
@@ -916,6 +991,8 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
     
     plot2
     
+    ########## Plot 3 #############
+    
     plot3 <- final_df_3 %>%
         ggplot(
             aes(
@@ -933,21 +1010,6 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
     
     plot3
     
-    #combi_plot <- patchwork::wrap_plots(plot,plot2,plot3, ncol = 1, heights = c(1, 1, 0.3))
-    #
-    #
-    ## combi_plot <- cowplot::plot_grid(plot,plot2,plot3, ncol = 1, rel_heights = c(1, 1, 0.3), labels = c("A","B","C"))
-    #
-    #results_list <- list("plot" = combi_plot)
-    #
-    #return(results_list)
-    #
-    #}
-    
-    
-    
-    
-    
     results_list <- list("plot1" = plot, "plot2" = plot2, "plot3" = plot3, "tb1" = tb1, "ptdf" = protective_threshold_df)
     
     return(results_list)
@@ -962,7 +1024,7 @@ plot_list1 <- list()
 plot_list2 <- list()
 plot_list3 <- list()
 tbl_list <- list()
-protective_threshold_df <- tibble()
+#protective_threshold_df <- tibble()
 
 
 # Loop through each Antigen and apply the function: mixed_effects_protection_glmer
@@ -983,21 +1045,19 @@ for (ag in Antigen_list) {
     plot_list2[[ag]] <- results$plot2
     plot_list3[[ag]] <- results$plot3
     tbl_list[[ag]] <- results$tb1
-    
-    protective_threshold_df <- bind_rows(protective_threshold_df, results$ptdf)
-    
+
 }
 # Combine the gtsummary tables
-combined_table <- tbl_stack(tbl_list)
+combined_table <- tbl_merge(tbl_list)
 combined_table
-library(cowplot)
+
+shelf(cowplot)
 
 # Combine the plots for each row
 row1 <- cowplot::plot_grid(plotlist = plot_list1, labels = "A", nrow = 1) # Unpacks plot_list1
 row2 <- cowplot::plot_grid(plotlist = plot_list2, labels = "B", nrow = 1) # Unpacks plot_list2
 row3 <- cowplot::plot_grid(plotlist = plot_list3, labels = "C", nrow = 1) # Unpacks plot_list3
 
-row2
 # Combine the rows into one grid
 combined_plot <- cowplot::plot_grid(row1, row2, row3, ncol = 1,rel_heights = c(1, 1, 0.5), align = "v")
 
@@ -1008,20 +1068,6 @@ print(combined_plot)
 main_07_fig4A_V3 <- combined_plot
 
 main_07_fig4A_V3
-
-
-###### get 50% putatuve protective thresholds
-
-pt<- protective_threshold_df  %>%
-    mutate(Threshold_RLU = 10^Threshold)
-
-protective_threshold_df  %>%
-    saveRDS("data/bloodIgG_protective_threshold_df.RDS")
-
-sprintf("The 50%% protective thresholds were %d RLU/mL for SLO, %d RLU/mL for SpyAD, and %d RLU/mL for SpyCEP",
-        as.integer(pt$Threshold_RLU[pt$Antigen == "SLO"]),
-        as.integer(pt$Threshold_RLU[pt$Antigen == "SpyAD"]),
-        as.integer(pt$Threshold_RLU[pt$Antigen == "SpyCEP"]))
 
 
 ################################
@@ -1175,6 +1221,9 @@ combined_table <- tbl_merge(tbl_list,
                             tab_spanner = names(tbl_list))
 
 combined_table
+
+
+
 #######################################################
 ###### Plot forest plots ############
 
@@ -1314,6 +1363,132 @@ main_07_fig4B_V3 <- final_fp_df %>%
     theme_universal(base_size = plot_basesize)
 
 main_07_fig4B_V3
+
+
+##############################################################################
+#### Describe baseline titres in relation to putative 50% protective thresholds 
+##############################################################################
+
+
+# run this line to source annoymised publically available data 
+#df <- readRDS("data/baseline_blood_no_disease_titres.RDS")  
+
+# run this line to source original data -> not annonymised only for manuscript revisions 
+df <- readRDS("data/baseline_blood_no_disease_titres.RDS")
+protective_threshold <- readRDS("data/bloodIgG_protective_threshold_df.RDS")
+
+
+
+# Calculate percentages of participants at study baseline with IgG above
+# putative 50% threshold for each Antigen
+
+df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold, by = join_by(Antigen)) %>%  # Correct join
+    mutate(above_threshold = ifelse(titre > Threshold, 1, 0)) %>%
+    ungroup() %>%
+    select(Antigen, above_threshold) %>%
+    gtsummary::tbl_summary(by = Antigen)
+
+percentage_labels <- df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold, by = join_by(Antigen)) %>%  # Correct join
+    mutate(above_threshold = ifelse(titre > Threshold, 1, 0)) %>%
+    group_by(Antigen) %>%
+    summarise(
+        n = n(),
+        n_above = sum(above_threshold),  # Sum the `above_threshold` column to count occurrences
+        percentage_above = mean(above_threshold) * 100  # Calculate the mean percentage
+    ) %>%
+    mutate(label = paste0(round(percentage_above, 0), "%"))  # Create a label for annotation
+
+
+# Dynamically create summary sentence
+sentence <- sprintf(
+    "At baseline, antibody levels from the cohort showed that %d individuals (%s) for SLO, %d (%s) for SpyAD, and %d (%s) for SpyCEP had IgG levels above the protective thresholds (Figure 4E).",
+    percentage_labels$n_above[percentage_labels$Antigen == "SLO"], 
+    percentage_labels$label[percentage_labels$Antigen == "SLO"], 
+    percentage_labels$n_above[percentage_labels$Antigen == "SpyAD"], 
+    percentage_labels$label[percentage_labels$Antigen == "SpyAD"], 
+    percentage_labels$n_above[percentage_labels$Antigen == "SpyCEP"], 
+    percentage_labels$label[percentage_labels$Antigen == "SpyCEP"]
+)
+
+# Print the sentence
+print(sentence)
+
+# Demonstrate the percentage above 50% thresholds at each age group for each antigen 
+
+df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold) %>%
+    mutate(above_threshold = ifelse(titre > Threshold, 1,0)) %>%
+    group_by(age_grp, Antigen) %>%
+    summarise(
+        proportion_protected = round(mean(above_threshold)*100, 0)) %>%
+    spread(Antigen, proportion_protected)
+
+
+# Plot age vs titre and the proportion above the putatuve 50% protective threshold
+
+# reubttal # 1 = update this to figure 4 - panel E
+fig_4E_age_thresholds <- df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold, by = join_by(Antigen)) %>%  # Correct join
+    mutate(above_threshold = ifelse(titre > Threshold, 1, 0)) %>%
+    ggplot(aes(x = age, y = titre, col = factor(above_threshold))) +  # Use factor to color by above/below threshold
+    guides(color = "none") +
+    facet_wrap(~Antigen) +
+    geom_point(alpha = 0.5) +
+    scale_color_manual(values = c("#d73027","#7570b3")) +
+    labs(
+        y = "IgG level (log10 RLU/mL)",
+        x = 'Age'
+        # title = "Blood IgG titres above 50% protective threshold by age group"
+    ) +
+    geom_hline(aes(yintercept = Threshold), linetype = "dashed", color = "red") +  # Reference Threshold correctly
+    theme_minimal() +
+    theme_universal(base_size = plot_basesize) +
+    # Annotate percentages
+    geom_text(
+        data = percentage_labels,
+        aes(x = Inf, y = Inf, label = label),  # Place in top-right corner
+        inherit.aes = FALSE, hjust = 1.2, vjust = 1.2, 
+        size = plot_basesize
+    )
+
+
+fig_4E_age_thresholds
+
+
+
+
+# Plot age group vs titre and the proportion above the putatuve 50% protective threshold
+
+
+
+df %>%
+    filter(Antigen %in% c("SLO", "SpyAD", "SpyCEP")) %>%
+    left_join(protective_threshold) %>%
+    mutate(above_threshold = ifelse(titre > Threshold, 1,0)) %>%
+    group_by(age_grp, Antigen) %>%
+    summarise(
+        proportion_protected = mean(above_threshold)) %>%
+    ggplot(aes(x = age_grp, y = proportion_protected, fill = Antigen)) +
+    scale_fill_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +
+    guides(fill = "none") +
+    facet_wrap(~Antigen) +
+    geom_col(alpha = 0.7) +
+    labs(
+        title = "Proportion of participants with baseline titres above 50% protected threshold",
+        x = "Age Group",
+        y = "Proportion"
+    ) +
+    theme_minimal() 
+
+
+
+
 
 
 ################################################
@@ -1475,6 +1650,7 @@ draw_coxag_cont_tables_cont_piecewise <- function(df, sample, class, event_break
 
 
 #### Import survival dataframe. 
+
 # A detailed description of the generation of this dataframe can be found at https://edwinarmitage.github.io/SpyCATS_primary_analysis.html
 
 survivial_df_blood_IgG <-  readRDS("data/survivial_df_blood_IgG.RDS")

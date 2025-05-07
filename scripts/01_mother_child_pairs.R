@@ -2,7 +2,7 @@
 # Version: 1.0
 # Date: 2024-07-18
 # Author: Dr Alexander J. Keeley
-# Inputs: R_objects/mother_child_pairs_IgG_titres.RDS
+# Inputs: data/mother_child_pairs_IgG_titres.RDS
 # Outputs: Plots to visualise anibody titres in mother child pairs over the first years of life 
 
 # Description:
@@ -90,6 +90,7 @@ titres_relative <- titres %>%
     left_join(boost) 
 
 #### Repeat previous two steps but using mutate to create each a value for each row  - which is needed produce the figure 
+# Note: boost2 includes per-row values for plotting; boost is a summary table
 
 boost2 <- titres %>%
     filter(participant == "C") %>%
@@ -122,6 +123,7 @@ titres_relative2 <- titres %>%
     left_join(boost2)
 
 # Create a variable "serological evidence of exposure" exposure for each ID 
+# Summary variable 'exposure' indicates serological evidence of exposure between 6m and follow-up
 
 seroconversion_summary <- boost %>%
     group_by(id) %>%
@@ -202,6 +204,39 @@ plot_01_main01_v1.0
 # 4. Comparison of IgG levels at birth #
 #############################
 
+###############################################
+#      Extra comments from reviewers #
+# calculalate Fetal:materal transfer ratio.  #
+###############################################
+
+# calculate F:M ratios on non-transofmred data 
+
+mftr <- titres %>%
+    filter(visit == "DEL") %>%
+    group_by(Antigen, id) %>%
+    select(id, participant, RLU_antibody_titre) %>%
+    spread(key = participant, value = RLU_antibody_titre) %>%
+    left_join(seroconversion_summary) %>%
+    mutate(mftr = C/M,
+           exposure = as.character(exposure)) %>%
+    ungroup()
+
+# summarise the M:F ratios 
+mftr_summary <- mftr %>%
+    group_by(Antigen) %>%
+    summarise(
+        FMR_mean = mean(mftr, na.rm = TRUE),
+        FMR_sd = sd(mftr, na.rm = TRUE),
+        n = sum(!is.na(mftr)),
+        FMR_se = FMR_sd / sqrt(n),
+        CI_lower = FMR_mean - 1.96 * FMR_se,
+        CI_upper = FMR_mean + 1.96 * FMR_se
+    ) %>%
+    select(Antigen, FMR_mean, CI_lower, CI_upper)
+
+mftr_summary
+
+
 #Pairwise comparison between maternal an new born with Paired Wilcoxon test and FDR correction ######
 
 # Filter the dataframe to allow p-value calculation
@@ -260,6 +295,12 @@ create_annotations <- function(pvals) {
 
 annotations <- create_annotations(pvals)
 
+fmr_annotations <- mftr_summary %>%
+    mutate(
+        fmr_label = sprintf("F:M ratio = %.2f\n(%.2f–%.2f)", FMR_mean, CI_lower, CI_upper)
+    ) %>%
+    select(Antigen, fmr_label)
+
 # Set the colour scheme for the plot
 
 palette <- wes_palette("FrenchDispatch")
@@ -285,6 +326,8 @@ plot_01_main02_v1.0 <- titres %>%
     theme_minimal()+ 
     geom_text(data = annotations, aes(x = 1.5, y = 6, label = label), 
               color = "black", size = 3, inherit.aes = FALSE) +
+    geom_text(data = fmr_annotations, aes(x = 1.5, y = 3.2, label = fmr_label), 
+              color = "black", size = 3, inherit.aes = FALSE) +
     scale_y_continuous(limits = c(3,6), breaks = c(3,4,5,6),labels = log10_to_exp) +
     theme_universal(base_size = plot_basesize)
 
@@ -298,7 +341,83 @@ titres %>%
     length()
 
 
-#################################
+############################
+# Are there any differences between maternal fetal transfer ratios between those who did and did not have serological evidence of exposure 
+# Pairwise comparison between M:FR between those with and without serological evidence of exposure. 
+
+# Create a function to calculate paired p-values
+calculate_pvalues <- function(df) {
+    pvals <- df %>%
+        group_by(Antigen) %>%
+        summarise(
+            p.value = wilcox.test(
+                mftr[exposure == "1"], 
+                mftr[exposure == "0"], 
+                paired = F
+            )$p.value
+        )
+    
+    pvals <- pvals %>%
+        mutate(p.adjusted = p.adjust(p.value, method = "fdr"))
+    
+    return(pvals)
+}
+
+# Extract adjusted p-values
+pvals <- calculate_pvalues(mftr)
+
+# Merge p-values back into the original dataframe
+mftr<- mftr %>%
+    left_join(pvals, by = "Antigen")
+
+
+
+
+
+create_annotations <- function(pvals) {
+    annotations <- pvals %>%
+        mutate(
+            label = ifelse(
+                p.adjusted < 0.0001,
+                "p.adj < 0.0001",  # Display "< 0.0001" for very small values
+                sprintf("p.adj = %.2f", p.adjusted)  # Otherwise, format to 3 decimal places
+            )
+        ) %>%
+        select(Antigen, label)
+    
+    return(annotations)
+}
+
+annotations <- create_annotations(pvals)
+
+
+# Make colour scheme consistent 
+palette <- wes_palette("FrenchDispatch")
+custom_palette <- palette[c(2, 1)]
+
+mfttr_plot <- mftr %>% 
+    ggplot(
+        aes(x = as.factor(exposure), y = mftr, colour = as.factor(exposure))) +
+    geom_jitter() +
+    facet_wrap(~Antigen) +
+    geom_text(data = annotations, aes(x = "0", y = 3.5, label = label), 
+              color = "black", size = 3, inherit.aes = FALSE) +
+    theme_minimal() +
+    #scale_colour_manual(values =  wesanderson::wes_palette("FrenchDispatch", n = 2)) +
+    scale_colour_manual(values =  custom_palette) +
+    theme_universal() +
+    guides(colour = "none") +
+    labs(y = "Fetal:Maternal IgG transfer ratio",
+         x = "Serological evidence of exposure between 6m and subsequent visit")
+
+
+mfttr_plot 
+ggsave("R_output/supp_fetal_maternal_ratios_vs_exposure_V1.0.png", mfttr_plot , dpi = 600, width = 600 / 96, height = 400/96, bg = "white")
+
+
+
+
+ #################################
 ##### 5. heatmap figures ###########
 #################################
 
@@ -369,6 +488,8 @@ pal <- wesanderson::wes_palette("Zissou1", 100, type = "continuous")
 
 # Prepare Matrix for Heatmap (Continuous 'change' Values):
 # Convert boost3 to wide format: rows are ordered antigens and columns are ordered ids.
+# rows = antigens, columns = individuals, values = change in titre
+
 mat <- boost3 %>%
     select(-id, -Antigen) %>%  # Remove original id and antigen columns.
     pivot_wider(
@@ -408,7 +529,8 @@ plot_01_supp02_V1.0
 row_order <- plot_01_supp02_V1.0$tree_row$order
 col_order <- plot_01_supp02_V1.0$tree_col$order
 
-# Convert mat to binary values: 1 for positive, 0 for negative
+# Convert matrix to binary for visualising presence/absence of response
+
 binary_mat <- ifelse(mat > 0, 1, 0)
 
 # Reorder binary_mat based on the dendrogram order

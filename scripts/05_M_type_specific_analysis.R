@@ -110,7 +110,7 @@ plots3 <- list()
 
 # Add emm cluster as a variable 
 
-cluster_rep.df <- readRDS("data/cluster_rep_df.RDS")
+cluster_rep.df <- readRDS("R_objects/cluster_rep.df.RDS")
 
 df_titre2 <- df_titre %>%
     left_join(cluster_rep.df) %>%
@@ -194,7 +194,10 @@ print(plot_09_fig06_panelA)
 #### Baseline raw MFI ################
 
 
-MFI <- readRDS("data/M_CRC_baseline_MFI_no_disease.RDS")
+# Use this when annonymised data loaded: 
+# MFI <- readRDS("data/M_CRC_baseline_MFI_no_disease.RDS")
+
+MFI <- readRDS("R_objects/M_CRC_baseline_MFI_no_disease.RDS")
 
 plot_09_fig06_panelB <- MFI %>%
     # Reorder Antigen based on the mean MFI for each group, with highest first
@@ -231,7 +234,7 @@ plot_09_fig06_panelB
 # Import the antiM, absolute changes in Z score around events data
 
 
-cleaned_data <- readRDS("data/M_CRC_E3_around_events.RDS") %>%
+cleaned_data <- readRDS("R_objects/M_CRC_E3_around_events.RDS") %>%
     group_by(event_id) %>%
     filter(n() >1) # This removes two readings where only a single antigen has titre data - not true values 
 

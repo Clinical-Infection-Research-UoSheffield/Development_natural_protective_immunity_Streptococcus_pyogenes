@@ -1,8 +1,8 @@
 # Title: Analysis of IgG Responses in Blood Samples around Strep A events 
 # Version: 1.0
 # Date: 2024-07-31
-# Autho : Dr. Alexander J. Keeley
-# Inputs: data/blood_IgG_titres.RDS 
+# Author : Dr. Alexander J. Keeley
+# Inputs: data/blood_IgG_titres.RDS, data/all_events_long_immunology.Rdata, data/all_events_long_incidence_wgs.RData
 # Outputs: Summaries of events numbers and timing to events. Plot files. 
 
 
@@ -303,9 +303,59 @@ plot_05_supp02_v1.0 <- df_to_adjust_event_type %>%
     ) 
 
 plot_05_supp02_v1.0 <- plot_05_supp02_v1.0 + theme(axis.text.x = element_blank())
-
-
 plot_05_supp02_v1.0
+
+df_to_adjust_event_type <- 
+    IgG_blood$relative_changes_IgG_Blood %>%
+    as.data.frame() %>%
+    mutate(Antigen = factor(Antigen, levels = c("GAC", "SLO", "SpyAD", "SpyCEP", "DNAseB"))) %>%
+    left_join(age) %>%
+    group_by(Antigen) %>%
+    ##
+    # Use this chuck of code to include the pre to event changes in dataframe if no pre_post titre is available. 
+    
+    mutate(pre_post = 
+               case_when(
+                   is.na(pre_post) & ! is.na(pre_event) ~ pre_event,
+                   T ~ pre_post
+               )) %>%
+    filter(event_type != "other",
+           #    age < 18,
+           !is.na(pre_post)) %>%
+    select(pid, age_grp, event_type, Antigen, pre_post)
+
+
+supplementary_response_changes_age_facet <- df_to_adjust_event_type %>%
+    
+    ggplot(
+        aes(x = event_type, y = pre_post)) +
+    geom_boxplot(aes(fill = event_type , col = event_type), alpha = 0.8) +
+    geom_point(aes(fill = event_type), shape = 21, color = "black", stroke = 0.2) +
+    facet_grid(Antigen ~ age_grp) +
+    theme_minimal() +
+    scale_fill_manual(name = "Event Type", values = wesanderson::wes_palette("Zissou1")) + 
+    scale_color_manual(name = "Event Type", values = wesanderson::wes_palette("Zissou1")) + 
+    labs(y = "Absolute change from pre event IgG level (log10 RLU/mL)",
+         x = "Event type") +
+    #  ggtitle("Comparison of relative antibody changes between microbiologically confirmed event types in participants under 12") +
+    # ggpubr::stat_compare_means()  +
+    theme_universal(base_size = plot_basesize) +
+    # scale_x_discrete() + 
+    summary_df %>%
+    filter(!is.na(label) & label != "NA") %>%
+    ggpubr::stat_pvalue_manual(
+        label = "label",
+        tip.length = 0.01,
+        size = 12 / (14/5),
+        step.increase = 0.035,
+        step.group.by = "Antigen",
+        position = position_dodge(width = 0.01)
+    ) + 
+    theme(axis.text.x = element_blank())
+
+
+plot_05_supp02_v1.0 <- supplementary_response_changes_age_facet
+
 rm(dunn_results,summary_df, df_to_adjust_event_type)
 
 #####################################################################
@@ -662,17 +712,40 @@ no_event_titres_rel <-
     mutate(rel_titre = titre - first(titre))
 
 
+geo_mean_monthly_df <- no_event_titres_rel %>%
+    filter(visit_date <= min(visit_date) + 410) %>%
+    left_join(age) %>%
+    mutate(month = floor_date(visit_date, unit = "month")) %>%
+    group_by(month, Antigen, age_grp) %>%
+    summarise(
+        mean = mean(rel_titre, na.rm = T),
+        geo_mean = log10(psych::geometric.mean(10^rel_titre, na.rm = TRUE)),
+        .groups = "drop"
+    )
+
+
 # Plot longitduinal titres relative to baseline 
 plot_05_main03_v1.0 <- no_event_titres_rel %>%
+    filter(visit_date <= min(visit_date) + 410) %>%
     left_join(age) %>%
     ggplot(aes(
         x = visit_date,
         y = rel_titre,
         col = Antigen
     )) +
+    geom_smooth(data = geo_mean_monthly_df, 
+                aes(x = month, y = geo_mean, group = 1), 
+                se = F,
+                #inherit.aes = FALSE,
+                color = "black", size = 0.8, linetype = "solid") +
     geom_point(alpha = 0.8) +
     scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +  
     geom_line(aes(y = rel_titre, x = visit_date, group = pid),color = "grey", size = 0.3, alpha = 0.5) +
+    geom_smooth(data = geo_mean_monthly_df, 
+                aes(x = month, y = geo_mean, group = 1), 
+                se = F,
+                #inherit.aes = FALSE,
+                color = "black", size = 0.8, linetype = "solid", alpha = 0.5) +
     facet_grid(Antigen ~factor(age_grp)) +
     theme_minimal() +
     labs(
@@ -690,8 +763,7 @@ n5 <- no_event_titres_rel %>% pull(pid) %>% unique() %>% length()
 sprintf("Longitudinal blood IgG profiles in participants (n=%i) without microbiologically confirmed Strep A events during the study period.", n5)
 
 
-    
-
+ 
 ######################
 ######################
 
@@ -817,6 +889,33 @@ dev.off()
 
 
 table(all_events_long_immunology$visit, all_events_long_immunology$gas_carriage)
+
+####################
+
+
+
+
+event_type_age <- IgG_blood$fold_changes_IgG_Blood %>% 
+    filter(!is.na(pre_post)) %>%
+    left_join(age) %>%
+    select(age_grp, event_id, event_type) %>%
+    unique() %>%
+    ungroup() %>%
+    select(age_grp, event_type) %>%
+    gtsummary::tbl_summary(by = age_grp,
+                           percent = "row") %>%
+    add_overall()
+
+
+doc <- read_docx()
+# Add regression table to word document
+doc <- add_table_to_doc(doc, event_type_age)
+
+print(doc, target = "R_output/supp_reviewer_response_event_type_age.docx")
+
+
+
+
 
 ######################
 ####### fin  #########
