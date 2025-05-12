@@ -423,3 +423,4 @@ plot_objects <- grep("plot_", all_objects, value = TRUE, ignore.case = TRUE)
 rm(list = setdiff(all_objects, plot_objects), envir = .GlobalEnv)
 
 rm(all_objects,plot_objects,keep_plot_objects)
+

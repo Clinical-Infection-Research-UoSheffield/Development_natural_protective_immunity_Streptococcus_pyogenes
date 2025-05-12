@@ -1,7 +1,35 @@
+# Title: Evaluating IgG Z-Score Thresholds for M-Protein-Specific Protection Against S pyogenes Events
+# Version: 1.0
+# Date: 2025-03-24
+# Author: Alexander J Keeley
+
+# Inputs: 
+#   - data/M_protection_dataframe.RDS
+#   - data/incidence_start_dates.RDS
+#   - data/SpyCATS_incidence_df.RDS
+#   - data/all_events_long_incidence_wgs.RData
+
+# Outputs: 
+#   - Logistic regression models assessing Z-scored IgG titres (and unrelated comparisons) for cluster relatied anti-M and protection
+#   - Combined figure comparing event proportions and logistic predictions
+#   - AIC values for model comparison
+
+# Description:
+#
+# This script models the association between M-protein-specific IgG titres (expressed as Z-scores) and the short-term risk 
+# of a culture confirmed event within 45 days. It compares homologous responses to unrelated antigens using mixed-effects logistic regression.
+#
 
 
+# Setup environment
+source("scripts/setup_environment.R")
+source("scripts/load_functions.R")
 
+# load datframes
+M_protection_df <- readRDS("data/M_protection_dataframe.RDS")
+start_dates <- readRDS("data/incidence_start_dates.RDS")
 
+# A function to add the unrelated M titre and compare AICs of the various models when exploring unrelated titre vs protection
 
 create_regression_dataframe_M_unrelated<- function(path_to_titre.df,sample,class, next_event_window = 45, var_name = "titre", n_tile = 4, antigen, df = 1,slice_window = 0.1, protective_threshold = 0.67) {
     
@@ -14,48 +42,8 @@ create_regression_dataframe_M_unrelated<- function(path_to_titre.df,sample,class
         mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1)
     
     
-    #start and stop dates from f/u periods. Set all start dates at zero.
-    # Adjust follow-up periods, setting start dates to zero and calculating periods and total participant years
-    
-    incidence_zero <- follow_up_dates_incidence %>%
-        select(!entry_6:exit_7) %>%
-        mutate(across(!pid, ~ .x - entry_1)) %>%   # for each row - take the entry 1 date away from the date variable (except pid )
-        filter(!exit_1 == 0) %>% # removes the participant who had no follow up time.
-        rowwise() %>%
-        mutate(entry_1 = entry_1,
-               period_1 = (exit_1 - entry_1),
-               period_2 = (exit_2 - entry_2),
-               period_3 = (exit_3 - entry_3),
-               period_4 = (exit_4 - entry_4),
-               period_5 = (exit_5 - entry_5),
-               total_pyears = sum(c_across(period_1:period_5), na.rm = T) / 365.25,
-               start = min(c_across(entry_1:entry_5), na.rm = T),
-               stop = max(c_across(exit_1:exit_5), na.rm = T)) %>%
-        select(-contains("period"))
-    
-    # Pivot entry and exit dates to long and calculate "gap" status - whether there was a gap in follow up.
-    incidence_entry_exit_long_zero <- incidence_zero %>%
-        pivot_longer(entry_1:exit_5, names_to = "date", values_to = c("timepoint"), values_drop_na = T) %>% 
-        mutate(
-            gap_status = case_when(
-                grepl("entry_",date) ~ 0,
-                grepl("exit_",date) ~ 1)) %>%
-        select(-total_pyears)
-    
-    # Merge demographic data
-    
-    incidence_zero <- right_join(final_dems,incidence_zero)
-    
-    
-    
-    # Create df for positive events incidence and zero dates (to be dependent variables)
-    pos_incidence_zero <- left_join(all_events_long_incidence_wgs,final_dems)
-    pos_incidence_zero <- left_join(pos_incidence_zero,start_dates)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(date = as.numeric(date - entry_1)) %>%
-        filter(date >= 0)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(across(contains("gas") | contains("sdse"), ~ ifelse(date == 0 & . == 1, NA, .)))  # This removes the event if it occureed in the first visit 
+    #import incidence dataframe
+    pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
     # Filter for specific antigen
     antigen_df <- fun_titres 
@@ -311,8 +299,7 @@ create_regression_dataframe_M_unrelated<- function(path_to_titre.df,sample,class
     
 }
 
-load("R_objects/all_events_long_incidence_wgs.RData")
-#load("../../../SpyCATS_github/R outputs/all_events_long_incidence_pcr.RData")
+load("data/all_events_long_incidence_wgs.RData")
 
 AIC_glmer <- data.frame(Antigen = character(), AIC_glmer = numeric(), stringsAsFactors = FALSE)
 
@@ -336,3 +323,4 @@ AIC_glmer
 result$table
 result$table2
 result$table3
+

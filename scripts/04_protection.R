@@ -91,20 +91,18 @@ start_dates <- readRDS("data/incidence_start_dates.RDS")
 
 plot_probabilites <- function(path_to_titre.df, sample, class, next_event_window = 45, var_name = "titre", antigen, df = 1, slice_window = 0.1, protective_threshold = 0.67) {
     
-    # Read titre data and merge with start dates and age, adjust visit dates, and categorize titres
+    # Read titre data and merge with start dates and age, adjust visit dates
     fun_titres <- read.titres(path_to_titre.df, var_name) %>%
         left_join(start_dates) %>%
         left_join(age) %>%
-        mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1) %>%
-        group_by(Antigen) %>%
-        ungroup()
+        mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1)
     
     # Filter for specific antigen
     antigen_df <- fun_titres %>% filter(Antigen == antigen & !is.na(pid)) 
     
     pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
-    # Prepare event data
+    # Prepare event data create a binary indicator of whether GAS event occurs within 45 days
     fun_df <- pos_incidence_zero %>%
         select(pid, date, gas_event) %>%
         arrange(pid, date) %>%
@@ -119,6 +117,8 @@ plot_probabilites <- function(path_to_titre.df, sample, class, next_event_window
             )) %>%
         select(-next_date) %>%
         ungroup()
+    
+    # Merge antibody data with event data, fill forward missing covariates within each individual - assuming titres remain constant between meaasurements
     
     final_df_3  <-fun_df %>%
         left_join(antigen_df %>% 
@@ -238,16 +238,15 @@ mixed_effects_protection_glmer <- function(path_to_titre.df, sample, class, next
     fun_titres <- read.titres(path_to_titre.df, var_name) %>%
         left_join(start_dates) %>%
         left_join(age) %>%
-        mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1) %>%
-        group_by(Antigen) %>%
-        ungroup()
+        mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1)
     
     # Filter for specific antigen
     antigen_df <- fun_titres %>% filter(Antigen == antigen & !is.na(pid)) 
     
     pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
-    # Prepare event data
+    
+    # Prepare event data create a binary indicator of whether GAS event occurs within 45 days
     fun_df <- pos_incidence_zero %>%
         select(pid, date, gas_event) %>%
         arrange(pid, date) %>%
@@ -262,6 +261,8 @@ mixed_effects_protection_glmer <- function(path_to_titre.df, sample, class, next
             )) %>%
         select(-next_date) %>%
         ungroup()
+    
+    # Merge antibody data with event data, fill forward missing covariates within each individual - assuming titres remain constant between meaasurements
     
     final_df_3  <-fun_df %>%
         left_join(antigen_df %>% 
@@ -308,6 +309,8 @@ mixed_effects_protection_glmer <- function(path_to_titre.df, sample, class, next
     
     # Extract AIC
     model_aic <- AIC(model)
+    
+    print(paste("sample size:",dim(final_df_3)[1]))
     print(paste(antigen,":", AIC(model)))
     
     tb1 <- model %>%
@@ -465,7 +468,7 @@ identify_piecewise_transition<- function(path_to_titre.df, sample, class, next_e
     
     pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
-    # Prepare event data
+    # Prepare event data create a binary indicator of whether GAS event occurs within 45 days
     fun_df <- pos_incidence_zero %>%
         select(pid, date, gas_event) %>%
         arrange(pid, date) %>%
@@ -487,6 +490,8 @@ identify_piecewise_transition<- function(path_to_titre.df, sample, class, next_e
     titre_breakpoint <- titre_breakpoint_df %>%
         filter(Antigen == antigen) %>%
         pull(titre_breakpoint)
+    
+    # Merge antibody data with event data, fill forward missing covariates within each individual - assuming titres remain constant between meaasurements
     
     final_df_3  <-fun_df %>%
         left_join(antigen_df %>% 
@@ -608,7 +613,7 @@ estimate_protective_threshold <- function(data_subset, antigen, next_event_windo
     
     pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
-    # Prepare event data
+    # Prepare event data create a binary indicator of whether GAS event occurs within 45 days
     fun_df <- pos_incidence_zero %>%
         select(pid, date, gas_event) %>%
         arrange(pid, date) %>%
@@ -629,6 +634,7 @@ estimate_protective_threshold <- function(data_subset, antigen, next_event_windo
         filter(Antigen == antigen) %>%
         pull(transition_point)
     
+    # Merge antibody data with event data, fill forward missing covariates within each individual - assuming titres remain constant between meaasurements
     
     final_df_3  <-fun_df %>%
         left_join(antigen_df %>% 
@@ -776,7 +782,7 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
     
     pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
-    # Prepare event data
+    # Prepare event data create a binary indicator of whether GAS event occurs within 45 days
     fun_df <- pos_incidence_zero %>%
         select(pid, date, gas_event) %>%
         arrange(pid, date) %>%
@@ -798,6 +804,8 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
     titre_breakpoint <- titre_breakpoint_df %>%
         filter(Antigen == antigen) %>%
         pull(titre_breakpoint)
+    
+    # Merge antibody data with event data, fill forward missing covariates within each individual - assuming titres remain constant between meaasurements
     
     final_df_3  <-fun_df %>%
         left_join(antigen_df %>% 
@@ -1090,7 +1098,7 @@ glmer_adjusted_piecewise <- function(path_to_titre.df, sample, class, var_name =
     
     pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
-    # Prepare event data
+    # Prepare event data create a binary indicator of whether GAS event occurs within 45 days
     fun_df <- pos_incidence_zero %>%
         select(pid, date, gas_event) %>%
         arrange(pid, date) %>%
@@ -1112,6 +1120,8 @@ glmer_adjusted_piecewise <- function(path_to_titre.df, sample, class, var_name =
     titre_breakpoint <- titre_breakpoint_df %>%
         filter(Antigen == antigen) %>%
         pull(titre_breakpoint)
+    
+    # Merge antibody data with event data, fill forward missing covariates within each individual - assuming titres remain constant between meaasurements
     
     final_df_3  <-fun_df %>%
         left_join(antigen_df %>% 
@@ -1146,7 +1156,7 @@ glmer_adjusted_piecewise <- function(path_to_titre.df, sample, class, var_name =
     model_summary <- summary(model_above_only)
     
     # Calculate confidence intervals
-    conf_intervals <- confint(model_above_only, parm = "beta_", method = "Wald")  # Wald CIs are common for GLMMs
+    conf_intervals <- confint(model_above_only, parm = "beta_", method = "Wald")  # Wald CIs 
     
     # Create a dataframe with hazard ratios (exponentiated coefficients), confidence intervals, and p-values
     or_df <- data.frame(

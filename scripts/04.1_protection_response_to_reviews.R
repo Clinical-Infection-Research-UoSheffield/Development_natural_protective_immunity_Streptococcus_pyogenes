@@ -1,13 +1,35 @@
+# Title: Responding to reviewer comments – multivariate analysis of IgG titres
 
-#### Script to respond to reviewers 
 
+# Author: Alexander J Keeley
+# Date: 2025-01-22
+# Description:
+#   This script was written in response to reviewer comments requesting:
+#   - Assessment of the independent effects of SLO, SpyAD, and SpyCEP
+#   - Evaluation of interaction effects between responses
+#   - Visualization of odds ratios and model confidence
+#   - Commentary on potential collinearity
+#
+# Inputs:
+#   - data/blood_IgG_titres.RDS
+#   - data/incidence_start_dates.RDS"
+#   - data/SpyCATS_incidence_df.RDS
+#
+# Outputs:
+#   - Model summary tables with ORs and 95% CIs
+#   - VIF diagnostics
+#   - AIC value for model comparison
+#   - Forest plot of selected model to explore synergy.
 
-#The statistical model in Figure 4 elegantly explores non-linear relationships in antibody mediated protection. 
-#It would be helpful for the authors to clarify the independent contribution of SLO, SpyAD and SpyCEP-responses to the protective signature. 
+# Comment: 
+# The statistical model in Figure 4 elegantly explores non-linear relationships in antibody mediated protection. 
+# It would be helpful for the authors to clarify the independent contribution of SLO, SpyAD and SpyCEP-responses to the protective signature. 
 # This is important as some of these responses are correlated in the overall response. 
 # Were interaction effects explored? Do particular combinations provide more predictive accuracy? 
 # Do functions predict better than titers? 
 # All of these data could be very important for vaccine development efforts.
+
+
 
 
 
@@ -81,25 +103,23 @@ shelf(officer,flextable)
 
 
 
-#### Step 1 load constant data frame: 
+### LOAD DATA
 
-load("R_objects/follow_up_dates_incidence.RData")
+# Load reference dates for incidence window alignment
 
-# Find enrolment dates for each person
-start_dates <- follow_up_dates_incidence %>%
-    select(pid, entry_1)
+start_dates <- readRDS("data/incidence_start_dates.RDS")
 
 
 #####  centered titres above threshold with covariats
 
-# To centre data (a method of attempting to handle multicollinearity in we could consider the approach to centre the titre data. 
-
-path_to_titre.df <- "R_objects/blood_IgG_titres.RDS"
+# Define path to IgG titre dataset and some key parameters
+path_to_titre.df <- "data/blood_IgG_titres.RDS"
 sample = "Blood"
 class = "IgG"
 var_name = "titre"
 next_event_window = 45
 
+# Set breakpoints for piecewise regression
 titre_breakpoint_df <- tibble(Antigen = c("SLO","SpyAD", "SpyCEP", "GAC","DNAseB"), transition_point = c(4.3,4.1,4.3,3,3))
 
 
@@ -112,15 +132,18 @@ fun_titres <- read.titres(path_to_titre.df, var_name) %>%
     ungroup() %>%
     left_join(titre_breakpoint_df) %>%
     mutate(titre_below_threshold = ifelse(titre <= transition_point, titre, transition_point),
-           IgG = ifelse(titre > transition_point, titre - transition_point, 0))
+           IgG = ifelse(titre > transition_point, titre - transition_point, 0),
+           hid = substring(pid, 1, 3))
 
+
+# Center each antigen's titre and IgG values to reduce collinearity
 fun_titres <- 
     fun_titres %>%
     group_by(Antigen) %>%
     mutate(c_titre = titre - mean(titre,na.rm = T),
            c_IgG = IgG - mean(IgG, na.rm = T))
 
-
+# Reshape data: one row per visit per participant, with wide-format IgG and titre columns
 antigen_df <- fun_titres %>%
     select(pid, hid, visit_date, Antigen, age_grp, sex, hhsize, titre = c_titre, IgG = c_IgG) %>%
     pivot_wider(
@@ -130,14 +153,11 @@ antigen_df <- fun_titres %>%
     )
 
 
-########add M peptides  ###
 
-readRDS("R_objects/M")
+# Load culture confirmed event incidence data 
+pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
 
-
-pos_incidence_zero <- readRDS("R_objects/SpyCATS_incidence_df.RDS")
-
-# Prepare event data
+# Create a binary indicator of whether another GAS event occurs within 45 days
 fun_df <- pos_incidence_zero %>%
     select(pid, date, gas_event) %>%
     arrange(pid, date) %>%
@@ -153,6 +173,7 @@ fun_df <- pos_incidence_zero %>%
     select(-next_date) %>%
     ungroup()
 
+# Merge antibody data with event data, fill forward missing covariates within each individual - assuming titres remain constant between meaasurements
 final_df_3  <-fun_df %>%
     left_join(antigen_df %>% 
                   rename(date = visit_date)) %>%
@@ -161,10 +182,10 @@ final_df_3  <-fun_df %>%
     ungroup() %>%
     mutate(hid = substring(pid, 1, 3))
 
-
+# Set reference category for age group to "Over 18 years"
 final_df_3$age_grp <- relevel(final_df_3$age_grp, ref = "Over 18 years")
 
-# Fit the logistic regression model
+# Fit the logistic regression model including interaction terms 
 model_3 <- lme4::glmer(event_next_n ~ IgG_SpyCEP+IgG_SpyAD+IgG_SLO+IgG_SpyCEP:IgG_SpyAD+IgG_SpyCEP:IgG_SLO+IgG_SpyAD:IgG_SLO + age_grp + sex + hhsize + (1 | pid) + (1 | hid), data = final_df_3, family = binomial)
 
 # Extract AIC
@@ -172,6 +193,11 @@ model_aic <- AIC(model_3)
 print(paste("Model: event_next_n ~ IgG_SpyCEP+IgG_SpyAD+IgG_SLO+IgG_SpyCEP:IgG_SpyAD+IgG_SpyCEP:IgG_SLO+IgG_SpyAD:IgG_SLO + age_grp + sex + hhsize + (1 | pid) + (1 | hid). 
                 AIC:"
             , AIC(model_3)))
+# Format regression table for presentation
+tb3 <- model_3 %>%
+    tbl_regression(exponentiate = TRUE) %>%  # Show odds ratios instead of log-odds
+    bold_p(t = 0.05) %>%  # Bold significant results
+    modify_header(list(label ~ paste(sample, class, "titre")))  # Custom table header
 
 tb3 <- model_3 %>%
     tbl_regression(exponentiate = TRUE) %>%
@@ -180,11 +206,13 @@ tb3 <- model_3 %>%
 
 tb3
 
+# Check for multicollinearity among predictors using Variance Inflation Factor (VIF)
 car::vif(model_3)
 
 
 shelf(broom.mixed)
 
+# Create a tidy data frame from model_3, including exponentiated coefficients (i.e. odds ratios)
 
 model_df <- tidy(model_3, effects = "fixed", conf.int = TRUE, exponentiate = TRUE) %>%
     filter(term != "(Intercept)") %>%
@@ -192,6 +220,8 @@ model_df <- tidy(model_3, effects = "fixed", conf.int = TRUE, exponentiate = TRU
         conf.high.trunc = pmin(conf.high, 5),
         above_limit = conf.high > 5
     )
+
+# Basic forest plot for model_3 showing truncated confidence intervals
 
 ggplot(model_df, aes(x = estimate, y = term)) +
     geom_pointrange(aes(xmin = conf.low, xmax = conf.high.trunc)) +
@@ -211,12 +241,13 @@ ggplot(model_df, aes(x = estimate, y = term)) +
 
 
 
-# Extract the summary of the model
+# Extract coefficients and confidence intervals manually (Wald method)
+
 model_summary <- summary(model_3)
+conf_intervals <- confint(model_3, parm = "beta_", method = "Wald")  
 
-# Calculate confidence intervals
-conf_intervals <- confint(model_3, parm = "beta_", method = "Wald")  # Wald CIs are common for GLMMs
 
+# Build a data frame of results including relabeling terms for interpretability and presenation 
 
 or_df <- data.frame(
     term = rownames(model_summary$coefficients),  # Variable names
@@ -259,7 +290,7 @@ or_df <- data.frame(
 
 
 
-
+# Reference rows for categories not explicitly modeled
 
 new_rows <- data.frame(
     term = c("Below threshold (ref)", "Over 18 years (ref)", "Male (ref)")
@@ -279,7 +310,7 @@ new_rows <- data.frame(
 
 
 
-# Ensure 'term' and 'variable_label' are ordered as intended
+# Prepare factor levels for ordered display
 or_df <- or_df %>%
     mutate(
         term = factor(term, levels = c(
@@ -292,6 +323,9 @@ or_df <- or_df %>%
                                               "Titre", "Age group", "Sex", "Household size")
     )
 
+
+
+# Final annotated and faceted forest plot
 or_df %>%
     filter(term != "(Intercept)") %>%
     ggplot(aes(x = estimate, y = term)) +  # term already defined with levels
@@ -338,23 +372,16 @@ or_df %>%
 ##########################################################################
 
 
-library(lme4)
+shelf(lme4)
 
 
-# Base covariates
+# Define the shared covariates used across all models
 base_covariates <- "+ age_grp + sex + hhsize + (1 | pid) + (1 | hid)"
 
 # Antigen list
 antigens <- c("IgG_SpyCEP", "IgG_SpyAD", "IgG_SLO")
 
-get_model_info <- function(name, predictors, model) {
-    tibble(
-        Model = name,
-        Predictors = predictors,
-        AIC = round(AIC(model), 2)
-    )
-}
-
+# Make a helper function to standardize model info extraction
 
 get_model_info <- function(name, predictors, model) {
     tibble(
@@ -364,7 +391,7 @@ get_model_info <- function(name, predictors, model) {
     )
 }
 # -----------------------------
-# Original models
+#  Fit models with various combinations of antigens
 # -----------------------------
 
 model_3 <- glmer(event_next_n ~ IgG_SpyCEP + IgG_SpyAD + IgG_SLO +
@@ -388,6 +415,7 @@ model_7 <- glmer(event_next_n ~ IgG_SpyAD +
                      age_grp + sex + hhsize + (1 | pid) + (1 | hid),
                  data = final_df_3, family = binomial)
 
+# summarise models 
 original_models <- list(
     get_model_info("Model 3", "SpyCEP + SpyAD + SLO + Interactions + covariates", model_3),
     get_model_info("Model 4", "SpyCEP + SpyAD + SLO + covariates", model_4),
@@ -411,7 +439,7 @@ pairwise_main_models <- combn(antigens, 2, simplify = FALSE) %>%
     })
 
 # -----------------------------
-# Interaction models
+# Models with interaction terms
 # -----------------------------
 
 interaction_models <- combn(antigens, 2, simplify = FALSE) %>%
@@ -425,7 +453,7 @@ interaction_models <- combn(antigens, 2, simplify = FALSE) %>%
     })
 
 # -----------------------------
-# Combine all models
+# Combine all models into one summary table
 # -----------------------------
 
 all_models_table <- bind_rows(
@@ -443,6 +471,10 @@ all_models_table <- bind_rows(
 print(all_models_table)
 
 all_models_table %>% write.csv("R_output/aic_synergistic_mdoels_reponse_reviewer.csv")
+
+# -----------------------------
+# Visualize AIC comparison
+# -----------------------------
 
 base_size = 14
 
@@ -506,6 +538,10 @@ ggplot(model_df, aes(x = estimate, y = term)) +
 # Extract the summary of the model
 model_summary <- summary(model_4)
 
+# -----------------------------
+# Format and relabel Model 4 (event_next_n ~ IgG_SpyCEP + IgG_SpyAD + IgG_SLO) output for faceted forest plot
+# -----------------------------
+
 # Calculate confidence intervals
 conf_intervals <- confint(model_4, parm = "beta_", method = "Wald")  # Wald CIs are common for GLMMs
 
@@ -550,7 +586,8 @@ or_df <- data.frame(
 
 
 
-
+# Reference labels for plot
+    
 new_rows <- data.frame(
     term = c(
         "Over 18 years (ref)", "Male (ref)")
@@ -582,6 +619,8 @@ or_df <- or_df %>%
                                               "Titre", "Age group", "Sex", "Household size")
     )
 
+
+# Build final forest plot
 plot_2 <- or_df %>%
     
     ggplot(aes(x = estimate, y = term)) +  # term already defined with levels
@@ -624,7 +663,9 @@ plot_2 <- or_df %>%
 
 plot_2
 
-
+# -----------------------------
+# Combine both plots into one figure
+# -----------------------------
 
 shelf(cowplot)
 synergistic <- plot_grid(
@@ -641,6 +682,9 @@ synergistic
 
 ggsave("R_output/response_reviewers_combined_effects_protection.png",plot = synergistic, width = 1200 / 96, height = 800/ 96, dpi = 300, bg = "white")
 
+
+# Save as pdf for final submission 
+ggsave("R_output/final_submission/figE_synergistic_protection.pdf", plot = synergistic, width = 1200 / 96, height = 800/ 96, dpi = 300, bg = "white", device = "pdf")
 
 
 

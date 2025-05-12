@@ -1,29 +1,55 @@
-# Title: Analysis of M peptide responses
-# Version: 1.1
+# Title: Analysis of M Protein-Specific IgG Responses and Associations with Strep A Events
+# Version: 1.2
 # Date: 2024-09-25
 # Author: Dr. Alexander J. Keeley
-# Inputs: 
-# Outputs: 
 
-# Description:
+# The core aims are to:
+#  - Characterize baseline titres and variation across age using fractional polynomial modeling.
+#  - Quantify IgG abundance using both standard titres and raw MFI values.
+#  - Investigate how titres change around infection events in relation to the relatedness of the antigen to the emm type of the event.
+#  - Evaluate associations between IgG titres (M-specific and conserved antigens) and risk of future infection.
+#  - Assess the independent and synergistic effects of M-specific and conserved antigen titres.
+#  - Conduct sensitivity analyses for robustness by including only measurements with the best performance in multiplex assay 
 
-# This script performs a baseline analysis of IgG titres in participants without Strep A disease events. The analysis focuses on:
-# 1. Extracting baseline titres from participants with no Strep A positive disease events.
-# 2. Fitting fractional polynomial models to predict IgG titres based on age and generating residual and fitted values.
-# 3. Calculating centile values and adding prediction bands based on these centiles.
-# 4. Generating plots for each antigen showing the distribution of titres and prediction bands.
-# 5. Import raw MFI values from the same samples, inorder to visualise relative 
 
+# Inputs:
+#  - M_CRC_baseline_no_disease.RDS: Baseline titres for M peptides in individuals without Strep A events
+#  - M_CRC_baseline_MFI_no_disease.RDS: Raw MFI values from baseline serum
+#  - M_CRC_E3_around_events.RDS: Titre measurements around infection events
+#  - M_protection_dataframe.RDS: Combined IgG titre and event data for protection analysis
+#  - blood_IgG_titres.RDS: Conserved antigen titres (e.g., SpyAD, SLO, SpyCEP)
+#  - cluster_rep.df.RDS: Mapping of M peptides to their emm cluster
+#  - SpyCATS_incidence_df.RDS: Longitudinal GAS event data
+#  - age and start_dates RDS files: Demographic metadata and entry dates
+
+# Outputs:
+#  - Figure 6 panels A–G: Composite visualization of baseline responses, event-related changes, protection analyses
+#  - Forest plots and model summaries showing protective associations
+#  - Supplementary analyses summarizing adjusted regression models, sensitivity analyses
+#  - Exported Word document with mixed-effect regression table
+#  - Correlation heatmaps of conserved/M antigen relationships
 
 # Requirements:
 
-#            Package Version
-#CorrMixed CorrMixed     1.1
-#gridExtra gridExtra     2.3
-#mfp             mfp 1.5.4.1
-#tidyverse tidyverse   2.0.0
-
-# Setup environment
+#           Package  Version
+# broom         broom    1.0.6
+# CorrMixed CorrMixed      1.1
+# corrplot   corrplot     0.92
+# cowplot     cowplot    1.1.3
+# flextable flextable    0.9.6
+# forcats     forcats    1.0.0
+# FSA             FSA    0.9.5
+# ggdist       ggdist    3.3.2
+# ggpubr       ggpubr    0.6.0
+# gridExtra gridExtra      2.3
+# gtsummary gtsummary    2.0.0
+# lme4           lme4 1.1-35.5
+# mfp             mfp  1.5.4.1
+# officer     officer    0.6.6
+# splines     splines    4.4.0
+# tidyverse tidyverse    2.0.0
+ 
+# # Setup environment
 source("scripts/setup_environment.R")
 source("scripts/load_functions.R")
 
@@ -82,14 +108,13 @@ theme_universal <- function(base_size = 8, base_family = "") {
 plot_basesize = 16
 
 
-
 # Load required packages using librarian
 shelf(tidyverse, mfp, CorrMixed, gridExtra, lme4, gtsummary) 
 shelf(FSA)
 
 # Import baseline dataframes
 
-df_titre <- readRDS("R_objects/M_CRC_baseline_no_disease.RDS")
+df_titre <- readRDS("data/M_CRC_baseline_no_disease.RDS")
 
 n1 <- df_titre %>% pull(pid) %>% unique() %>% length()
 
@@ -110,7 +135,7 @@ plots3 <- list()
 
 # Add emm cluster as a variable 
 
-cluster_rep.df <- readRDS("R_objects/cluster_rep.df.RDS")
+cluster_rep.df <- readRDS("data/cluster_rep.df.RDS")
 
 df_titre2 <- df_titre %>%
     left_join(cluster_rep.df) %>%
@@ -197,7 +222,7 @@ print(plot_09_fig06_panelA)
 # Use this when annonymised data loaded: 
 # MFI <- readRDS("data/M_CRC_baseline_MFI_no_disease.RDS")
 
-MFI <- readRDS("R_objects/M_CRC_baseline_MFI_no_disease.RDS")
+MFI <- readRDS("data/M_CRC_baseline_MFI_no_disease.RDS")
 
 plot_09_fig06_panelB <- MFI %>%
     # Reorder Antigen based on the mean MFI for each group, with highest first
@@ -205,7 +230,6 @@ plot_09_fig06_panelB <- MFI %>%
     mutate(mean_MFI = mean(MFI)) %>%
     ungroup() %>%
     mutate(Antigen = fct_reorder(Antigen, mean_MFI, .desc = TRUE)) %>%
-    filter(!Antigen %in% c("J8","P17", "K4S2")) %>%
     ggplot(aes(x = Antigen, y = MFI, col = Antigen)) +
     scale_color_manual(values = StrepA_colscheme) +
     geom_violin() +
@@ -234,7 +258,7 @@ plot_09_fig06_panelB
 # Import the antiM, absolute changes in Z score around events data
 
 
-cleaned_data <- readRDS("R_objects/M_CRC_E3_around_events.RDS") %>%
+cleaned_data <- readRDS("data/M_CRC_E3_around_events.RDS") %>%
     group_by(event_id) %>%
     filter(n() >1) # This removes two readings where only a single antigen has titre data - not true values 
 
@@ -335,7 +359,7 @@ plot_09_fig06_panelC
 
 ##### each row is a set of measurements for each antigen arounda n event.
 
-cleaned_data3 <- readRDS("R_objects/M_CRC_E3_around_events.RDS") %>%
+cleaned_data3 <- readRDS("data/M_CRC_E3_around_events.RDS") %>%
     filter(Antigen %in% c("M1", "M4", "M44", "M75", "M89", "M25", "M87")) %>%
     group_by(event_id) %>%
     filter(n() >1)
@@ -435,8 +459,37 @@ plot_09_fig06_panelC_sensitivity_2
 ############### Protection analyses ########################
 ############################################################
 
+# Data provenance: `M_protection_df`
 
-M_protection_df <- readRDS("R_objects/M_protection_dataframe.RDS")
+# This dataframe was constructed to evaluate the relationship between anti-M IgG
+# responses and protection against subsequent Strep A infection events. It was 
+# generated from longitudinal serological data merged with event-
+# level metadata including emm type and cluster classifications. The key steps were:
+#
+# 1. IgG titres (Z-scores) were extracted from longitudinal dried blood spot data 
+#    for both cases and matched household controls.
+#
+# 2. Event metadata, including site and infection type, were merged with emm type/cluster
+#    from the swab database. 
+#
+# 3. Event titres were labeled as "Pre", "Post", or "Event" relative to the GAS-positive date.
+
+# 4. For each event or control, antigens were classified as:
+#    - Homologous: exact match to emm type
+#    - Cluster-homologous: shared emm cluster
+#    - Unrelated: not matching
+#
+# 5. For each event/visit, the most relevant antigen (homologous if available, otherwise
+#    cluster-homologous) was selected. Mean titres for unrelated M peptides were also retained
+#    for use as within-visit comparators.
+#
+# 6. Controls were selected from household members who were GAS-negative within ±90 days 
+#    of a GAS event in another household member, with available titres pre- and post-event.
+#
+# The final object includes both case and control observations, with titres labeled by
+# relation to the GAS event for protection analyses 
+
+M_protection_df <- readRDS("data/M_protection_dataframe.RDS")
 
 #### The number of emm-typed events
 n1 <- M_protection_df %>%
@@ -512,7 +565,7 @@ joined.df %>%
 
 ##### produce the sensitivity analysis keeping only the 7 M protins with best specificty data
 
-M_protection_sensitivity <- readRDS("R_objects/M_protection_sensitivity_dataframe.RDS")
+M_protection_sensitivity <- readRDS("data/M_protection_sensitivity_dataframe.RDS")
 
 # Number of measurements in sensitivity dataframe 
 M_protection_sensitivity %>%    
@@ -542,7 +595,7 @@ join1 <- M_protection_sensitivity %>%
     select(pid, visit_date, M = titre) %>%
     unique()
 
-conserved <- readRDS("R_objects/blood_IgG_titres.RDS") %>%
+conserved <- readRDS("data/blood_IgG_titres.RDS") %>%
     spread(Antigen, titre)
 
 
@@ -608,49 +661,9 @@ create_regression_dataframe_glmer_test <- function(path_to_titre.df,sample,class
         left_join(age) %>%
         mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1)
     
+
     
-    #start and stop dates from f/u periods. Set all start dates at zero.
-    # Adjust follow-up periods, setting start dates to zero and calculating periods and total participant years
-    
-    incidence_zero <- follow_up_dates_incidence %>%
-        select(!entry_6:exit_7) %>%
-        mutate(across(!pid, ~ .x - entry_1)) %>%   # for each row - take the entry 1 date away from the date variable (except pid )
-        filter(!exit_1 == 0) %>% # removes the participant who had no follow up time.
-        rowwise() %>%
-        mutate(entry_1 = entry_1,
-               period_1 = (exit_1 - entry_1),
-               period_2 = (exit_2 - entry_2),
-               period_3 = (exit_3 - entry_3),
-               period_4 = (exit_4 - entry_4),
-               period_5 = (exit_5 - entry_5),
-               total_pyears = sum(c_across(period_1:period_5), na.rm = T) / 365.25,
-               start = min(c_across(entry_1:entry_5), na.rm = T),
-               stop = max(c_across(exit_1:exit_5), na.rm = T)) %>%
-        select(-contains("period"))
-    
-    # Pivot entry and exit dates to long and calculate "gap" status - whether there was a gap in follow up.
-    incidence_entry_exit_long_zero <- incidence_zero %>%
-        pivot_longer(entry_1:exit_5, names_to = "date", values_to = c("timepoint"), values_drop_na = T) %>% 
-        mutate(
-            gap_status = case_when(
-                grepl("entry_",date) ~ 0,
-                grepl("exit_",date) ~ 1)) %>%
-        select(-total_pyears)
-    
-    # Merge demographic data
-    
-    incidence_zero <- right_join(final_dems,incidence_zero)
-    
-    
-    
-    # Create df for positive events incidence and zero dates (to be dependent variables)
-    pos_incidence_zero <- left_join(all_events_long_incidence_wgs,final_dems)
-    pos_incidence_zero <- left_join(pos_incidence_zero,start_dates)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(date = as.numeric(date - entry_1)) %>%
-        filter(date >= 0)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(across(contains("gas") | contains("sdse"), ~ ifelse(date == 0 & . == 1, NA, .)))  # This removes the event if it occureed in the first visit 
+    pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
     # Filter for specific antigen
     antigen_df <- fun_titres 
@@ -885,6 +898,11 @@ create_regression_dataframe_glmer_test <- function(path_to_titre.df,sample,class
     
 }
 
+
+#### load start dates
+
+start_dates <- readRDS("data/incidence_start_dates.RDS")
+
 AIC_glmer <- data.frame(Antigen = character(), AIC_glmer = numeric(), stringsAsFactors = FALSE)
 
 result <- create_regression_dataframe_glmer_test(path_to_titre.df =  M_protection_df,
@@ -934,49 +952,7 @@ create_regression_dataframe_glmer_adjusted <- function(path_to_titre.df,sample,c
         left_join(age) %>%
         mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1)
     
-    
-    #start and stop dates from f/u periods. Set all start dates at zero.
-    # Adjust follow-up periods, setting start dates to zero and calculating periods and total participant years
-    
-    incidence_zero <- follow_up_dates_incidence %>%
-        select(!entry_6:exit_7) %>%
-        mutate(across(!pid, ~ .x - entry_1)) %>%   # for each row - take the entry 1 date away from the date variable (except pid )
-        filter(!exit_1 == 0) %>% # removes the participant who had no follow up time.
-        rowwise() %>%
-        mutate(entry_1 = entry_1,
-               period_1 = (exit_1 - entry_1),
-               period_2 = (exit_2 - entry_2),
-               period_3 = (exit_3 - entry_3),
-               period_4 = (exit_4 - entry_4),
-               period_5 = (exit_5 - entry_5),
-               total_pyears = sum(c_across(period_1:period_5), na.rm = T) / 365.25,
-               start = min(c_across(entry_1:entry_5), na.rm = T),
-               stop = max(c_across(exit_1:exit_5), na.rm = T)) %>%
-        select(-contains("period"))
-    
-    # Pivot entry and exit dates to long and calculate "gap" status - whether there was a gap in follow up.
-    incidence_entry_exit_long_zero <- incidence_zero %>%
-        pivot_longer(entry_1:exit_5, names_to = "date", values_to = c("timepoint"), values_drop_na = T) %>% 
-        mutate(
-            gap_status = case_when(
-                grepl("entry_",date) ~ 0,
-                grepl("exit_",date) ~ 1)) %>%
-        select(-total_pyears)
-    
-    # Merge demographic data
-    
-    incidence_zero <- right_join(final_dems,incidence_zero)
-    
-    
-    
-    # Create df for positive events incidence and zero dates (to be dependent variables)
-    pos_incidence_zero <- left_join(all_events_long_incidence_wgs,final_dems)
-    pos_incidence_zero <- left_join(pos_incidence_zero,start_dates)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(date = as.numeric(date - entry_1)) %>%
-        filter(date >= 0)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(across(contains("gas") | contains("sdse"), ~ ifelse(date == 0 & . == 1, NA, .)))  # This removes the event if it occureed in the first visit 
+    pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
     # Filter for specific antigen
     antigen_df <- fun_titres 
@@ -1082,9 +1058,9 @@ output3 <- create_regression_dataframe_glmer_adjusted(path_to_titre.df = M_prote
 
 output3$table
 
-###########################################################################
-####### combining GLMER with conserved antigen above threshold ############
-##########################################################################
+###################################################################################################
+####### combining GLMER with conserved antigen above breakpoints for piecewise regression ############
+##################################################################################################
 
 
 create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sample,class, next_event_window = 45, var_name = "titre", n_tile = 4, antigen) {
@@ -1112,51 +1088,11 @@ create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sampl
         mutate(visit_date = as.numeric(ymd(as.character(visit_date))) - entry_1)
     
     
-    
-    
-    
-    incidence_zero <- follow_up_dates_incidence %>%
-        select(!entry_6:exit_7) %>%
-        mutate(across(!pid, ~ .x - entry_1)) %>%   # for each row - take the entry 1 date away from the date variable (except pid )
-        filter(!exit_1 == 0) %>% # removes the participant who had no follow up time.
-        rowwise() %>%
-        mutate(entry_1 = entry_1,
-               period_1 = (exit_1 - entry_1),
-               period_2 = (exit_2 - entry_2),
-               period_3 = (exit_3 - entry_3),
-               period_4 = (exit_4 - entry_4),
-               period_5 = (exit_5 - entry_5),
-               total_pyears = sum(c_across(period_1:period_5), na.rm = T) / 365.25,
-               start = min(c_across(entry_1:entry_5), na.rm = T),
-               stop = max(c_across(exit_1:exit_5), na.rm = T)) %>%
-        select(-contains("period"))
-    
-    # Pivot entry and exit dates to long and calculate "gap" status - whether there was a gap in follow up.
-    incidence_entry_exit_long_zero <- incidence_zero %>%
-        pivot_longer(entry_1:exit_5, names_to = "date", values_to = c("timepoint"), values_drop_na = T) %>% 
-        mutate(
-            gap_status = case_when(
-                grepl("entry_",date) ~ 0,
-                grepl("exit_",date) ~ 1)) %>%
-        select(-total_pyears)
-    
-    # Merge demographic data
-    
-    incidence_zero <- right_join(final_dems,incidence_zero)
-    
-    
-    
-    # Create df for positive events incidence and zero dates (to be dependent variables)
-    pos_incidence_zero <- left_join(all_events_long_incidence_wgs,final_dems)
-    pos_incidence_zero <- left_join(pos_incidence_zero,start_dates)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(date = as.numeric(date - entry_1)) %>%
-        filter(date >= 0)
-    pos_incidence_zero <- pos_incidence_zero %>%
-        mutate(across(contains("gas") | contains("sdse"), ~ ifelse(date == 0 & . == 1, NA, .)))  # This removes the event if it occureed in the first visit 
-    
     # Filter for specific antigen
     antigen_df <- fun_titres 
+    
+    #import incidence dataframe
+    pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
     # Prepare event data
     fun_df <- pos_incidence_zero %>%
@@ -1192,24 +1128,19 @@ create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sampl
     
     stopifnot("pid" %in% names(final_df_3))
     
+    # 1: Unadjusted model 
+
+    model <- lme4::glmer(event_next_n ~ titre + titre_above_threshold + (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
     
-    
-    model2 <- lme4::glmer(event_next_n ~ titre + titre_above_threshold + age_grp + sex + hhsize+  (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
-    
-    print(paste0("model2 (M + ", antigen, " above transitionpoint -fully adjusted):", AIC(model2)))
-    
-    tb2 <- model2 %>%
+    print(paste0("model1 (M + ", antigen, " above transitionpoint):", AIC(model)))
+    tb1 <- model %>%
         tbl_regression(exponentiate = TRUE) %>%
         add_nevent() %>%
-        bold_p(t = 0.05) 
+        bold_p(t = 0.05)  # Modify header here 
+
     
-    
-    
-    # Use broom::tidy to extract model2 results
-    model2_tidy <- broom::tidy(model2, conf.int = TRUE, exponentiate = TRUE) %>%
-        rename(estimate = estimate, conf.low = conf.low, conf.high = conf.high, p.value = p.value) %>%
-        mutate(antigen = antigen)  # Add Antigen column for identification
-    
+    ###############################
+    ### visualise the independant effect of anti-M and anti-conserved IgG - using unadjusted model 
     
     # Create a range of values for M titre and the continuous antigen variable
     M_range <- seq(min(final_df_3$titre, na.rm = TRUE), max(final_df_3$titre, na.rm = TRUE), length.out = 100)
@@ -1225,7 +1156,6 @@ create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sampl
     grid_data$antigen <- antigen  # Add antigen name
     
     
-    
     plot <- ggplot(grid_data, aes(x = titre_above_threshold + titre_breakpoint, y = titre, fill = prob)) +
         geom_tile()  + # Creates the heatmap tiles based on probability
         scale_fill_gradient(name = "Probability", low = "white", high = "navy") +
@@ -1237,8 +1167,28 @@ create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sampl
         theme_minimal()+
         theme_universal(base_size = plot_basesize)
     
+    #2: adjusted model with age household size and sex: in order to be able to visualise with forest plots 
     
-    results_list <- list("tb1" = tb1, "tb2" = tb2,"tb3" = tb3, "plot" = plot, "model2_results" = model2_tidy )
+    model2 <- lme4::glmer(event_next_n ~ titre + titre_above_threshold + age_grp + sex + hhsize+  (1 | pid) + (1 | hid), data=final_df_3, family=binomial)
+    
+    print(paste0("model2 (M + ", antigen, " above transitionpoint -fully adjusted):", AIC(model2)))
+    
+    
+    tb2 <- model2 %>%
+        tbl_regression(exponentiate = TRUE) %>%
+        add_nevent() %>%
+        bold_p(t = 0.05) 
+    
+    
+    # Use broom::tidy to extract model2 results 
+    model2_tidy <- broom::tidy(model2, conf.int = TRUE, exponentiate = TRUE) %>%
+        rename(estimate = estimate, conf.low = conf.low, conf.high = conf.high, p.value = p.value) %>%
+        mutate(antigen = antigen)  # Add Antigen column for identification
+    
+    
+    
+    
+    results_list <- list("tb1" = tb1, "tb2" = tb2, "plot" = plot, "model2_results" = model2_tidy )
     
     # Return the list
     
@@ -1265,7 +1215,7 @@ Antigen_list = c("SLO","SpyAD","SpyCEP")
 for (ag in Antigen_list) {
     results <- create_regression_glmer_conserved_M(
         M_titres = M_protection_df,
-        conserved_titres = readRDS("R_objects/blood_IgG_titres.RDS"),
+        conserved_titres = readRDS("data/blood_IgG_titres.RDS"),
         sample = "Blood",
         class = "IgG",
         var_name = "titre",
@@ -1411,9 +1361,6 @@ M_forrest <- final_fp_df %>%
 plot_09_fig06_panelG <- M_forrest
 plot_09_fig06_panelG
 
-
-
-
 #  only using "M1", "M4", "M44", "M75", "M89", "M25", "M87" titres 
 
 tb1_list <- list()
@@ -1431,7 +1378,7 @@ results_df <- data.frame(antigen = character(), term = character(), estimate = n
 for (ag in Antigen_list) {
     results <- create_regression_glmer_conserved_M(
         M_titres = M_protection_sensitivity,
-        conserved_titres = readRDS("R_objects/blood_IgG_titres.RDS"),
+        conserved_titres = readRDS("data/blood_IgG_titres.RDS"),
         sample = "Blood",
         class = "IgG",
         var_name = "titre",
