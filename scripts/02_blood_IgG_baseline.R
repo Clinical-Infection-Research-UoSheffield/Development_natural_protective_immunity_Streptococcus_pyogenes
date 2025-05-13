@@ -17,8 +17,7 @@
 
 # Requirements:
 
-# Package Version
-
+#           Package  Version
 # CorrMixed CorrMixed     1.1
 # corrplot   corrplot    0.92
 # gridExtra gridExtra     2.3

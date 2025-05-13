@@ -14,12 +14,24 @@
 
 # Requirements:
 
-# Package Versions
-# librarian     librarian   1.8.1
-# ggdist           ggdist   3.3.2
-# ggpubr           ggpubr   0.6.0
-# tidyverse     tidyverse   2.0.0
-# wesanderson wesanderson   0.3.7
+#               Package   Versions
+# broom             broom    1.0.6
+# broom.mixed broom.mixed  0.2.9.5
+# dunn.test     dunn.test    1.3.6
+# flextable     flextable    0.9.6
+# ggdist           ggdist    3.3.2
+# ggpubr           ggpubr    0.6.0
+# grid               grid    4.4.0
+# gridExtra     gridExtra      2.3
+# gtsummary     gtsummary    2.0.0
+# lme4               lme4 1.1-35.5
+# lmerTest       lmerTest    3.1-3
+# officer         officer    0.6.6
+# psych             psych 2.4.6.26
+# tidyr             tidyr    1.3.1
+# tidyverse     tidyverse    2.0.0
+# UpSetR           UpSetR    1.4.0
+# wesanderson wesanderson    0.3.7
 
 
 ##################
@@ -833,6 +845,8 @@ upset_data_immunology <- upset_data_immunology %>%
 # Convert tibble to a regular data frame
 upset_data_immunology <- as.data.frame(upset_data_immunology)
 
+upset_data_immunology
+
 # Set the output to a PNG file with 300 DPI
 png("R_output/supp_05_fig04.png", width = 1020 /96, height = 530 / 96, units = "in", res = 300)
 
@@ -930,3 +944,4 @@ plot_objects <- grep("plot_", all_objects, value = TRUE, ignore.case = TRUE)
 # Remove all objects that do not contain "plot" in their name
 rm(list = setdiff(all_objects, plot_objects), envir = .GlobalEnv)
 rm(all_objects,plot_objects,keep_plot_objects)
+

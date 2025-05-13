@@ -18,11 +18,13 @@
 # Requirements:
 
 # Package Versions
-# ggdist           ggdist   3.3.2
-# ggpubr           ggpubr   0.6.0
-# pheatmap       pheatmap  1.0.12
-# tidyverse     tidyverse   2.0.0
-# wesanderson wesanderson   0.3.7
+
+# ggdist           ggdist    3.3.2
+# ggpubr           ggpubr    0.6.0
+# pheatmap       pheatmap   1.0.12
+# psych             psych 2.4.6.26
+# tidyverse     tidyverse    2.0.0
+# wesanderson wesanderson    0.3.7
 
 
 ##############################

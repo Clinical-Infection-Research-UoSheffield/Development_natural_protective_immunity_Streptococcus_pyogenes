@@ -243,6 +243,7 @@ mixed_effects_protection_glmer <- function(path_to_titre.df, sample, class, next
     # Filter for specific antigen
     antigen_df <- fun_titres %>% filter(Antigen == antigen & !is.na(pid)) 
     
+    #load events incidence datdframe
     pos_incidence_zero <- readRDS("data/SpyCATS_incidence_df.RDS")
     
     

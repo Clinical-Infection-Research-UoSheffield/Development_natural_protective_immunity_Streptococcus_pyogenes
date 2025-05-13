@@ -1,4 +1,4 @@
-# Title: Evaluating IgG Z-Score Thresholds for M-Protein-Specific Protection Against S pyogenes Events
+# Title: Respondin to reviewer: unrelated M protein and protection 
 # Version: 1.0
 # Date: 2025-03-24
 # Author: Alexander J Keeley
