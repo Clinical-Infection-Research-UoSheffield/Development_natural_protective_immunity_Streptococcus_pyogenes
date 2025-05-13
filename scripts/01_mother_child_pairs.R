@@ -35,7 +35,7 @@
 source("scripts/setup_environment.R")
 
 # Load required packages using librarian
-shelf(tidyverse, ggdist, ggpubr, wesanderson, pheatmap)
+shelf(tidyverse, ggdist, ggpubr, wesanderson, pheatmap, psych)
 
 # Import titre dataframe from mother child pairs 
 titres <- readRDS("data/mother_child_pairs_IgG_titres.RDS")

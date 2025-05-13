@@ -102,15 +102,25 @@ The data will be made publicly available upon publication from DOI:...
 ### **Reproduce Analyses:**
 
 Work through the scripts sequentially to reproduce the analyses presented in the manuscript. The recommended order is as follows:
+
 ```
 - `01_mother_child_pairs.R`  
 - `02_blood_IgG_baseline.R`  
 - `03_blood_titres_around_events.R`  
 - `04_protection.R`  
+    - `04.1_protection_response_to_reviews.R`
+    - `04.2_response_to_reviewers_10_fold_crossvalidation.R`
+    - `04.3_response_to_reviewers_multiple_thresholds.R`
 - `05_M_type_specific_analysis.R`  
+    - `05.1_response_to_reviewers_M_type_specific_analysis.R`
+    - `05.2_response_to_reviewer_M_protection.R`
+- `06_functional_assays.R`
+
 ```
 
-Analyses should be viewed directly within **RStudio**. The output will be displayed through plots, tables, and console outputs within the RStudio environment.
+Note that source data for 06_functional_assays.R, the data used in this analysis is owned by GSK Vaccines and is not publicly available, however the code is visible to understand the analyses performed
+
+Analyses should be viewed directly within **RStudio**. The output will be displayed through plots, tables, and console outputs within the RStudio environment, or outputted to a directory called "R_output"
 
 ---
 

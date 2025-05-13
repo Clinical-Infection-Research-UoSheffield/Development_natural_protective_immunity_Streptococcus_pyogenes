@@ -1365,7 +1365,6 @@ plot_09_fig06_panelG
 
 tb1_list <- list()
 tb2_list <- list()
-tb3_list <- list()
 plot_list <- list()
 plot_row_list <- list()
 
@@ -1387,7 +1386,6 @@ for (ag in Antigen_list) {
     
     tb1_list[[ag]] <- results$tb1
     tb2_list[[ag]] <- results$tb2
-    tb3_list[[ag]] <- results$tb3
     plot_list[[ag]] <- results$plot
     
     # Combine three plots into one row (shared fill scale is automatic if using ggplot)
@@ -1405,13 +1403,11 @@ combined_plot <- cowplot::plot_grid(plotlist = plot_row_list, ncol = 3, align = 
 
 plot_09_fig06_panelF <- combined_plot
 plot_09_fig06_panelF
+
 tbl_merge( tb1_list,
            tab_spanner = Antigen_list)
 
 tbl_merge( tb2_list,
-           tab_spanner = Antigen_list)
-
-tbl_merge( tb3_list,
            tab_spanner = Antigen_list)
 
 # Display all plots

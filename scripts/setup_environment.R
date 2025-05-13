@@ -12,7 +12,14 @@
 # Install required packages, including librarian if not already installed
 if (!requireNamespace("librarian", quietly = TRUE)) install.packages("librarian")
 
+# Create output directory if it doesn't exist 
+if (!dir.exists("R_output")) {
+    dir.create("R_output")
+}
 
+if (!dir.exists("R_output/final_submission")) {
+    dir.create("R_output/final_submission")
+}
 # Load librarian
 library(librarian)
 
