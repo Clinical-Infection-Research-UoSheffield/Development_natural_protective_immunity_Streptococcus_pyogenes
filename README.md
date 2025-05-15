@@ -108,7 +108,7 @@ Run the `load_data.R` script to automatically download and extract the anonymize
 
 > The data has been made publicly available upon publication via DOI: [10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)
 
-#### 🛠 **Option 2: Manual download (no R required)**
+#### 🛠 **Option 2: Manual download (fewer dependencies required)**
 
 1. Go to the dataset's Zenodo page: [https://doi.org/10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)  
 2. Click the **“Download all”** button to download the full archive (e.g., `14887949.zip`).  
