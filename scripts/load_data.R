@@ -51,14 +51,4 @@ message("Downloaded files:")
 print(list.files(data_dir, recursive = TRUE))
 
 
-
-# Detach all non-base packages
-detach_all_packages <- function() {
-    base_pkgs <- c("stats", "graphics", "grDevices", "utils", "datasets", "methods", "base")
-    loaded_pkgs <- setdiff(loadedNamespaces(), base_pkgs)
-    for (pkg in loaded_pkgs) {
-        try(detach(paste0("package:", pkg), character.only = TRUE, unload = TRUE), silent = TRUE)
-    }
-}
-
-detach_all_packages()
+unshelf(everything = T)
