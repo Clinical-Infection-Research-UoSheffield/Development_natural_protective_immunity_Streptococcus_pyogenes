@@ -109,10 +109,9 @@ read.titres <- function(titre.df, var = "titre")    {
 ############
 ############
 
-library(ggplot2)
 
 # Universal theme function
-theme_universal <- function(base_size = 8, base_family = "") {
+theme_universal <- function(base_size = 6, base_family = "") {
     theme_minimal(base_size = base_size, base_family = base_family) +
         theme(
             # Title settings
@@ -124,7 +123,7 @@ theme_universal <- function(base_size = 8, base_family = "") {
             ),
             # Subtitle settings
             plot.subtitle = element_text(
-                size = base_size * 1.2,
+                size = base_size +1,
                 hjust = 0.5,
                 margin = margin(b = base_size / 2)
             ),
@@ -146,7 +145,7 @@ theme_universal <- function(base_size = 8, base_family = "") {
             ),
             # Axis text settings
             axis.text = element_text(
-                size = base_size * 0.8
+                size = base_size -1
             ),
             # Legend title and text
             legend.title = element_text(
@@ -161,10 +160,8 @@ theme_universal <- function(base_size = 8, base_family = "") {
         )
 }
 
-
-plot_basesize = 14
-
-
+plot_basesize = 6
+dot_size = 0.6
 ############
 ############
 
@@ -181,10 +178,6 @@ StrepA_colscheme <- c(
     "M44"  = "#4292C6",  # Medium blue
     "M82"  = "#08306B",  # Navy blue
     "M87"  = "#3182BD",  # Steel blue
-    # Conserves M for P17, J8, K4S2
-    "P17"  = "#D73027",  # Deep red
-    "J8"   = "#FC8D59",  # Lighter red-orange
-    "K4S2" = "#B2182B",  # Dark crimson red
     # Distinct colors for other Antigens
     "M1"   = "#66C2A5",
     "M18"  = "#FC8D62",
@@ -197,7 +190,7 @@ StrepA_colscheme <- c(
     "M74"  = "#1F78B4",
     "M75"  = "#33A02C",
     "M76"  = "#FB9A99",
-    "M89"  = "#E31A1C",
+    "M89"  = "#A0b6D9",
     "M97"  = "#FDBF6F"
 )
 

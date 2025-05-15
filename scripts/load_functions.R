@@ -358,7 +358,7 @@ generate_paired_analysis <- function(input_df, include_event_as_paired = T, samp
         ggplot(aes(x = factor(status, level = c("Pre", "Post")), y = titre)) +
         geom_violin(aes(fill = Antigen), alpha = 0.1) +
         geom_line(aes(group = event_id), col = "grey", linewidth = 0.075) +
-        geom_point(aes(col = Antigen), width = 0.2, alpha = 0.8) +
+        geom_point(size = dot_size, aes(col = Antigen), width = 0.2, alpha = 0.8) +
         stat_summary(fun = median, geom = "crossbar", width = 0.5, col = "black") +
         scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +
         scale_fill_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +
@@ -371,7 +371,7 @@ generate_paired_analysis <- function(input_df, include_event_as_paired = T, samp
             y = "Titre (RLU/mL)"
         ) +
         scale_y_continuous(limits = c(0, 6), breaks = c(1, 2, 3, 4, 5, 6), labels = log10_to_exp) +
-        geom_text(data = annotations, aes(x = 1.5, y = 6, label = label), color = "black", size = 4, inherit.aes = FALSE) +
+        geom_text(data = annotations, aes(x = 1.5, y = 6, label = label), color = "black", size = plot_basesize/2.8, inherit.aes = FALSE) +
         theme_universal(base_size = plot_basesize)
     
     return(list(results = result, plot = plot))
@@ -480,11 +480,11 @@ Longitudinal_event_plot_by_age <- function(data, sample, class, var_label = "tit
         ggplot(aes(x = diff, y = median_rel_titre)) +
         facet_grid(Antigen ~ age_grp) +
         geom_ribbon(aes(ymin = LM, ymax = UM, fill = Antigen), alpha = 0.5) +
-        geom_line(alpha = 0.8) +
         geom_line(aes(y = rel_titre, x = diff, group = event_id),color = "grey", size = 0.3, alpha = 0.5) +
-        geom_point(width = 0.1, alpha = 0.8, aes(y = rel_titre, x = diff, col = Antigen)) +
-        labs(x = "Days from event (n)",
-             y = paste0("Change from baseline titre around event (",titre_label,")")
+        geom_point(size = dot_size, width = 0.1, alpha = 0.8, aes(y = rel_titre, x = diff, col = Antigen)) +
+        geom_line() +
+              labs(x = "Days from event (n)",
+             y = paste0("Change from baseline titre around event /n (",titre_label,")")
         ) + 
         guides(col = "none", fill = "none") +
         scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#8B8000", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +  
@@ -499,11 +499,11 @@ Longitudinal_event_plot_by_age <- function(data, sample, class, var_label = "tit
         ggplot(aes(x = diff, y = mean_log_RLU_titres)) +
         facet_grid(Antigen ~ age_grp) +
         geom_ribbon(aes(ymin = LL, ymax = UL, fill = Antigen), alpha = 0.5) +
-        geom_line(alpha = 0.8) +
         geom_line(data = summary_df, aes(y = rel_titre, x = diff, group = event_id),color = "grey", size = 0.3, alpha = 0.5) +
-        geom_point(width = 0.1, alpha = 0.8, aes(y = rel_titre, x = diff, col = Antigen)) +
+        geom_point(size = dot_size,width = 0.1, alpha = 0.8, aes(y = rel_titre, x = diff, col = Antigen)) +
+        geom_line() +
         labs(x = "Days from event (n)",
-             y = paste0("Change from baseline titre around event (",titre_label,")")
+             y = paste0("Change from baseline titre around event /n (",titre_label,")")
         ) + 
         guides(col = "none", fill = "none") +
         scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#8B8000", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +  
@@ -625,14 +625,13 @@ longitudinal_event_site_plot <- function(data, sample, class,var_label = "titre"
     plot1 <- summary_df %>%
         ggplot(aes(x = diff, y = median_rel_titre)) +
         facet_grid(Antigen~event_type, scales = "free") +
-        geom_ribbon(aes(ymin = LM, ymax = UM, fill = factor(event_type)), alpha = 0.8) +
-        geom_line(alpha = 0.8) +
-        geom_line(aes(y = rel_titre, x = diff, group = event_id),color = "grey", size = 0.3, alpha = 0.5) +
-        geom_point(width = 0.1, alpha = 0.5, 
+        geom_ribbon(aes(ymin = LM, ymax = UM, fill = factor(event_type)), alpha = 0.8) +        geom_line(aes(y = rel_titre, x = diff, group = event_id),color = "grey", size = 0.3, alpha = 0.5) +
+        geom_point(size = dot_size,width = 0.1, alpha = 0.5, 
                    aes(y = rel_titre, x = diff, fill = factor(event_type), col = factor(event_type), group = event_type), 
                    position = position_dodge(width = 5)) +  # Dodging the points by site
+        geom_line() +
         labs(x = "Days from event (n)",
-             y = paste0("Change from baseline titre around event (",titre_label,")")
+             y = paste0("Change from baseline titre around event /n(",titre_label,")")
         ) + 
         theme_minimal() +
         #  ggtitle(paste0("Relative ", sample, " ", class, " antibody changes around Strep A events in ", age_label, " by event type")) +
@@ -646,13 +645,14 @@ longitudinal_event_site_plot <- function(data, sample, class,var_label = "titre"
         ggplot(aes(x = diff, y = mean_titre)) +
         facet_grid(Antigen~event_type, scales = "free") +
         geom_ribbon(aes(ymin = LL, ymax = UL, fill = factor(event_type)), alpha = 0.8) +
-        geom_line(alpha = 0.8) +
+  
         geom_line(aes(y = rel_titre, x = diff, group = event_id),color = "grey", size = 0.3, alpha = 0.5) +
-        geom_point(width = 0.1, alpha = 0.5, 
+        geom_point(size = dot_size,width = 0.1, alpha = 0.5, 
                    aes(y = rel_titre, x = diff, fill = factor(event_type), col = factor(event_type), group = event_type), 
-                   position = position_dodge(width = 5)) +  # Dodging the points by site
+                   position = position_dodge(width = 5)) +
+        geom_line() +
         labs(x = "Days from event (n)",
-             y = paste0("Change from baseline titre around event (",titre_label,")")
+             y = paste0("Change from baseline titre around event /n (",titre_label,")")
         ) + 
         theme_minimal() +
         #   ggtitle(paste0("Relative ", sample, " ", class, " antibody changes around Strep A events in ", age_label, " by event type")) +

@@ -52,59 +52,7 @@ library(librarian)
 
 shelf(tidyverse, ggplot2, ggpubr, magick, cowplot)
 
-# Universal theme function
-theme_universal <- function(base_size = 8, base_family = "") {
-    theme_minimal(base_size = base_size, base_family = base_family) +
-        theme(
-            # Title settings
-            plot.title = element_text(
-                size = base_size,
-                hjust = 0.5,
-                face = "bold",
-                margin = margin(b = base_size / 2)
-            ),
-            # Subtitle settings
-            plot.subtitle = element_text(
-                size = base_size * 1.2,
-                hjust = 0.5,
-                margin = margin(b = base_size / 2)
-            ),
-            # Facet title settings
-            strip.text = element_text(
-                size = base_size,
-                face = "bold",
-                hjust = 0.5
-            ),
-            # Axis title settings
-            axis.title.x = element_text(
-                size = base_size,
-                face = "bold",
-                margin = margin(t = base_size / 2)  # Add space above the x-axis title
-            ),
-            axis.title.y = element_text(
-                size = base_size,
-                face = "bold" 
-            ),
-            # Axis text settings
-            axis.text = element_text(
-                size = base_size * 0.8
-            ),
-            # Legend title and text
-            legend.title = element_text(
-                size = base_size,
-                face = "bold"
-            ),
-            legend.text = element_text(
-                size = base_size
-            ),
-            # Margins
-            plot.margin = margin(t = base_size, r = base_size, b = base_size, l = base_size)
-        )
-}
-
-
-plot_basesize = 16
-
+source("scripts/setup_environment.R")
 
 ### source the dataframes - please note this is not publically available 
 
