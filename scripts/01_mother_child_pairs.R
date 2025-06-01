@@ -299,7 +299,7 @@ annotations <- create_annotations(pvals)
 
 fmr_annotations <- mftr_summary %>%
     mutate(
-        fmr_label = sprintf("F:M ratio = %.2f\n(%.2f–%.2f)", FMR_mean, CI_lower, CI_upper)
+        fmr_label = sprintf("F:MR = %.2f\n(%.2f–%.2f)", FMR_mean, CI_lower, CI_upper)
     ) %>%
     select(Antigen, fmr_label)
 
@@ -317,7 +317,7 @@ plot_01_main02_v1.0 <- titres %>%
     facet_wrap(~Antigen, ncol = 5) +
     geom_line(aes(group = id), col = "grey", alpha = 0.2) +
     geom_boxplot(alpha = 0.1) +
-    geom_point(alpha = 0.3) +
+    geom_point(alpha = 0.3, size = dot_size) +
     scale_fill_manual(values =  custom_palette) +
     scale_colour_manual(values =  custom_palette) +
     labs(
@@ -327,9 +327,9 @@ plot_01_main02_v1.0 <- titres %>%
     guides(col = "none", fill = "none") +
     theme_minimal()+ 
     geom_text(data = annotations, aes(x = 1.5, y = 6, label = label), 
-              color = "black", size = 3, inherit.aes = FALSE) +
+              color = "black", size = (plot_basesize - 1) / 2.8, inherit.aes = FALSE) +
     geom_text(data = fmr_annotations, aes(x = 1.5, y = 3.2, label = fmr_label), 
-              color = "black", size = 3, inherit.aes = FALSE) +
+              color = "black", size = (plot_basesize -1) / 2.8, inherit.aes = FALSE) +
     scale_y_continuous(limits = c(3,6), breaks = c(3,4,5,6),labels = log10_to_exp) +
     theme_universal(base_size = plot_basesize)
 
@@ -400,10 +400,10 @@ custom_palette <- palette[c(2, 1)]
 mfttr_plot <- mftr %>% 
     ggplot(
         aes(x = as.factor(exposure), y = mftr, colour = as.factor(exposure))) +
-    geom_jitter() +
+    geom_jitter(size = dot_size) +
     facet_wrap(~Antigen) +
     geom_text(data = annotations, aes(x = "0", y = 3.5, label = label), 
-              color = "black", size = 3, inherit.aes = FALSE) +
+              color = "black", size = plot_basesize / 2.8, inherit.aes = FALSE) +
     theme_minimal() +
     #scale_colour_manual(values =  wesanderson::wes_palette("FrenchDispatch", n = 2)) +
     scale_colour_manual(values =  custom_palette) +
@@ -414,8 +414,13 @@ mfttr_plot <- mftr %>%
 
 
 mfttr_plot 
-ggsave("R_output/supp_fetal_maternal_ratios_vs_exposure_V1.0.png", mfttr_plot , dpi = 600, width = 600 / 96, height = 400/96, bg = "white")
-
+ggsave("R_output/supp_fetal_maternal_ratios_vs_exposure_V1.0.pdf", 
+       mfttr_plot, 
+       width = 88, 
+       height = 100, 
+       units = "mm", 
+       dpi = 600, 
+       bg = "white")
 
 
 
@@ -503,7 +508,7 @@ mat <- boost3 %>%
     as.matrix()
 
 # Set font size for plots
-base_size = 10
+base_size = 6
 
 # Create Heatmap with Dendrograms (Continuous 'change' Values):
 plot_01_supp02_V1.0 <- pheatmap(

@@ -23,7 +23,7 @@ This repository contains the code to reproduce analyses from the manuscript enti
 - All dates are uniformly offset by a constant to preserve time intervals while concealing actual dates.
 - Exact ages are replaced with pseudo-ages randomly generated within defined age groups.
 
-Upon publication, data to reproduce analyses will be made publicly available, hosted on Zenodo at DOI:...
+Upon publication, data to reproduce analyses will be made publicly available, hosted on Zenodo at [https://doi.org/10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)
 
 ---
 
@@ -63,7 +63,8 @@ The following R packages are required for the analyses. The `librarian` package 
 - `broom.mixed (0.2.9.5)`  
 - `CorrMixed (1.1)`  
 - `corrplot (0.92)`  
-- `cowplot (1.1.3)`  
+- `cowplot (1.1.3)` 
+- `devtools (2.4.5)`
 - `dplyr (1.1.4)`  
 - `dunn.test (1.3.6)`  
 - `flextable (0.9.6)`  
@@ -74,7 +75,8 @@ The following R packages are required for the analyses. The `librarian` package 
 - `ggpubr (0.6.0)`  
 - `grid (4.4.0)`  
 - `gridExtra (2.3)`  
-- `gtsummary (2.0.0)`  
+- `gtsummary (2.0.0)` 
+- `inborutils (0.4.0)`
 - `librarian (1.8.1)`  
 - `lme4 (1.1-35.5)`  
 - `lmerTest (3.1-3)`  
@@ -96,8 +98,36 @@ The following R packages are required for the analyses. The `librarian` package 
 
 ### **Import Data:**
 
-Run the `load_data.R` script to automatically download and import the anonymized dataset from the Zenodo depository.  
-The data will be made publicly available upon publication from DOI:...
+There are two ways to import the data into this repository:
+
+#### 🔁 **Option 1: Run the automated script**
+
+Run the `load_data.R` script to automatically download and extract the anonymized dataset from the Zenodo depository.
+
+`source("load_data.R")`
+
+> The data has been made publicly available upon publication via DOI: [https://doi.org/10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)
+
+#### 🛠 **Option 2: Manual download (fewer dependencies required)**
+
+1. Go to the dataset's Zenodo page: [https://doi.org/10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)  
+2. Click the **“Download all”** button to download the full archive (e.g., `14887949.zip`).  
+3. Unzip the contents.  
+4. Move the extracted folder or files into a new directory in the project directory called `data/`.
+
+Your directory structure should now look like:
+
+```
+repo/
+├── data/
+│   ├── file1.RDS
+│   ├── file2.RDS
+│   └── ...
+├── scripts/
+└── ...etc
+```
+
+
 
 ### **Reproduce Analyses:**
 

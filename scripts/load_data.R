@@ -1,43 +1,54 @@
-# ---------------------------------------------------------
 # Script Title: Data Download and Extraction
-# Author: Alex Keeley   
-# Date: 20/02/2025
+# Author: Alexander J. Keeley   
+# Date: 20/02/2025 (Updated 15/05/2025)
 # 
 # Description:
 # This script automates the download and extraction of data to reproduce analyses 
 # that will be publicly available under a Creative Commons (CC) license 
 # upon publication. The dataset is hosted on Zenodo.
 #
+# Package Version
+# devtools     devtools   2.4.5
+# inborutils inborutils   0.4.0
+# librarian   librarian   1.8.1
+
+
 # The data will be distributed under the Creative Commons Attribution 
 # 4.0 International (CC BY-NC-ND 4.0) license.
 # ---------------------------------------------------------
 
-
-# Load required packages
+# Install librarian if not already installed
+if (!requireNamespace("librarian", quietly = TRUE)) install.packages("librarian")
 
 library(librarian)
-shelf(httr)
 
-# Define URL and file paths
-zip_url <- "<insert once public>"
-zip_file <- "data.zip"
+
+# Install and load required packages
+if (!requireNamespace("inborutils", quietly = TRUE)) {
+    # load devtools 
+    shelf(devtools)
+    # install.packages("devtools")
+    devtools::install_github("inbo/inborutils")
+}
+
+shelf(inborutils)
+
+# Define the Zenodo DOI and target directory
+doi <- "10.5281/zenodo.14887949"
 data_dir <- "data"
 
-# Ensure the 'data/' directory exists
+# Create the data directory if it doesn't exist
 if (!dir.exists(data_dir)) {
     dir.create(data_dir)
 }
 
-# Download ZIP file if it doesn't exist
-if (!file.exists(zip_file)) {
-    message("Downloading dataset from Zenodo...")
-    download.file(zip_url, zip_file, mode = "wb")
-} else {
-    message("ZIP file already exists, skipping download.")
-}
+# Download all files from the Zenodo record to the data directory
+message("Downloading dataset using inborutils::download_zenodo()...")
+download_zenodo(doi = doi, path = data_dir, quiet = TRUE)
 
-# Extract the ZIP file into 'data/' directory
-message("Extracting dataset...")
-unzip(zip_file, exdir = data_dir)
+# List files for verification
+message("Downloaded files:")
+print(list.files(data_dir, recursive = TRUE))
 
-message("Dataset successfully extracted to 'data/' directory.")
+
+unshelf(everything = T)

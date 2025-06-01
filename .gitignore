@@ -10,3 +10,5 @@ scripts/compile_figures.R
 R_output/
 R_objects
 scripts/dataframe_sense_checks.R
+figure_formatting.html
+figure_formatting.Rmd

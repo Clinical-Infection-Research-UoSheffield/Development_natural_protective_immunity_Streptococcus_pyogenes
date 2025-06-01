@@ -49,7 +49,14 @@ final_dems %>%
 # This approach maintains the overall age group distribution and supports reproducibility of analyses,
 # while significantly reducing the risk of re-identifying individual participants.
 
-df <- readRDS("data/baseline_blood_no_disease_titres.RDS")  
+# df <- readRDS("data/baseline_blood_no_disease_titres.RDS")  
+
+# Use this version to create plots with origianl data 
+df <- readRDS("R_objects//baseline_blood_no_disease_titres.RDS")  
+
+# Return the numberes included in baseline cross sectional analysis 
+df %>%
+    pull(pid) %>% unique() %>% length()
 
 # create an empty dataframe to append the output of your for loop
 centile_df <- data.frame()
@@ -99,7 +106,7 @@ for (a in unique(df$Antigen)) {
     p <- ggplot(ctrl, aes(x = age, y = titre, col = Antigen)) +
         scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +
         guides(color = "none") +
-        geom_point(alpha = 0.5) +
+        geom_point(alpha = 0.5,size = dot_size) +
         geom_line(aes(y = .fitted), linetype = "dashed", color = "black") +
         geom_line(aes(y = upp25), linetype = "dashed", color = "red", alpha = 0.5) +
         geom_line(aes(y = upp80), linetype = "dashed", color = "blue") +
@@ -170,7 +177,7 @@ for (a in unique(df$Antigen)) {
         ggplot(aes(x = age, y = titre, col = Antigen)) +
         scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +
         guides(color = "none") +
-        geom_point(alpha = 0.5) +
+        geom_point(alpha = 0.5, size = dot_size) +
         geom_line(aes(y = .fitted), linetype = "dashed", color = "black") +
         geom_line(aes(y = upp25), linetype = "dashed", color = "red", alpha = 0.5) +
         geom_line(aes(y = upp80), linetype = "dashed", color = "blue") +
@@ -364,7 +371,7 @@ df %>%
     ggplot(aes(x = age, y = titre, col = factor(above_threshold))) +  # Use factor to color by above/below threshold
     guides(color = "none") +
     facet_wrap(~Antigen) +
-    geom_point(alpha = 0.5) +
+    geom_point(alpha = 0.5, size = dot_size) +
     scale_color_manual(values = c("#d73027","#7570b3")) +
     labs(
         y = "IgG level (log10 RLU/mL)",
@@ -379,7 +386,7 @@ df %>%
         data = percentage_labels,
         aes(x = Inf, y = Inf, label = label),  # Place in top-right corner
         inherit.aes = FALSE, hjust = 1.2, vjust = 1.2, 
-        size = plot_basesize
+        size = plot_basesize / 2.8 *2
     )
 
 

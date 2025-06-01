@@ -53,59 +53,6 @@
 source("scripts/setup_environment.R")
 source("scripts/load_functions.R")
 
-# Universal theme function
-theme_universal <- function(base_size = 8, base_family = "") {
-    theme_minimal(base_size = base_size, base_family = base_family) +
-        theme(
-            # Title settings
-            plot.title = element_text(
-                size = base_size,
-                hjust = 0.5,
-                face = "bold",
-                margin = margin(b = base_size / 2)
-            ),
-            # Subtitle settings
-            plot.subtitle = element_text(
-                size = base_size * 1.2,
-                hjust = 0.5,
-                margin = margin(b = base_size / 2)
-            ),
-            # Facet title settings
-            strip.text = element_text(
-                size = base_size,
-                face = "bold",
-                hjust = 0.5
-            ),
-            # Axis title settings
-            axis.title.x = element_text(
-                size = base_size,
-                face = "bold",
-                margin = margin(t = base_size / 2)  # Add space above the x-axis title
-            ),
-            axis.title.y = element_text(
-                size = base_size,
-                face = "bold" 
-            ),
-            # Axis text settings
-            axis.text = element_text(
-                size = base_size * 1.2
-            ),
-            # Legend title and text
-            legend.title = element_text(
-                size = base_size,
-                face = "bold"
-            ),
-            legend.text = element_text(
-                size = base_size
-            ),
-            # Margins
-            plot.margin = margin(t = base_size, r = base_size, b = base_size, l = base_size)
-        )
-}
-
-
-
-plot_basesize = 16
 
 
 # Load required packages using librarian
@@ -189,7 +136,7 @@ for (a in unique(df_titre$Antigen)) {
     p <- ggplot(ctrl, aes(x = age, y = titre, col = Antigen)) +
         scale_color_manual(values = StrepA_colscheme) +
         guides(color = "none") +
-        geom_point(alpha = 0.5) +
+        geom_point(alpha = 0.5, size = dot_size *0.8) +
         geom_line(aes(y = .fitted), linetype = "dashed", color = "black") +
         geom_line(aes(y = upp25), linetype = "dashed", color = "red", alpha = 0.5) +
         geom_line(aes(y = upp80), linetype = "dashed", color = "blue") +
@@ -233,10 +180,10 @@ plot_09_fig06_panelB <- MFI %>%
     ggplot(aes(x = Antigen, y = MFI, col = Antigen)) +
     scale_color_manual(values = StrepA_colscheme) +
     geom_violin() +
-    geom_jitter(alpha = 0.1) +
+    geom_jitter(alpha = 0.1, size = dot_size *0.8) +
     guides(col = "none") +
     labs(
-        y = "log10 MFI * sample dilution",
+        y = "log10 MFI * dilution",
         #  title = "IgG Antibodies as raw median flourescene from from baseline samples demonstrating relative abundance of specific IgG in pariticpant sera"
     ) +
     #  stat_compare_means() +
@@ -316,6 +263,7 @@ plot <- cleaned_data %>%
     ggdist::geom_dots(
         width = 0.3,
         position = position_nudge(x = 0.05), 
+        size = dot_size,
         aes(col = relation_to_event, fill = relation_to_event)
     ) +
     ggdist::stat_slab(
@@ -326,7 +274,7 @@ plot <- cleaned_data %>%
     ) +
     labs(
         x = "Relationship of antibody to emm type of event",
-        y = "Absolute change in titre Z score around event"
+        y = "Absolute change in \n anti-M Z score around event"
     ) +
     scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) + # Remove underscores from labels
     scale_color_brewer() +
@@ -344,7 +292,7 @@ plot_09_fig06_panelC <- plot + ggpubr::stat_pvalue_manual(dunn_results_df,
                                                           y.position = max(cleaned_data$pre_post, na.rm = TRUE) + 0.5,
                                                           tip.length = 0.01, 
                                                           step.increase = 0.1,
-                                                          size = 8)
+                                                          size = plot_basesize / 2.8)
 
 # Display the final plot
 plot_09_fig06_panelC
@@ -428,7 +376,7 @@ plot <- cleaned_data3 %>%
     ) +
     labs(
         x = "Relationship of antibody to emm type of event",
-        y = "Absolute change in titre Z score around event"
+        y = "Absolute change in \n titre Z score around event"
     ) +
     scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) + # Remove underscores from labels
     scale_color_brewer() +
@@ -446,7 +394,7 @@ plot_09_fig06_panelC_sensitivity_2 <- plot + ggpubr::stat_pvalue_manual(dunn_res
                                                                         y.position = max(cleaned_data3$pre_post, na.rm = TRUE) + 0.5,
                                                                         tip.length = 0.01, 
                                                                         step.increase = 0.1,
-                                                                        size = 8)
+                                                                        size = plot_basesize / 2.8)
 
 # Display the final plot
 plot_09_fig06_panelC_sensitivity_2
@@ -845,7 +793,8 @@ create_regression_dataframe_glmer_test <- function(path_to_titre.df,sample,class
                  label = paste0("OR: ", round(ORs[2], 2), 
                                 "\n95% CI: [", round(CIs[1, 1], 2), ", ", round(CIs[1, 2], 2), "]", 
                                 "\n", p_label), 
-                 hjust = 0) +
+                 hjust = 0, 
+                 size = plot_basesize / 2.8) +
         theme_universal(base_size = plot_basesize)
     
     plot1 <- ggplot(data = probabilities, aes(x = Threshold, y = Probability)) +
@@ -866,14 +815,14 @@ create_regression_dataframe_glmer_test <- function(path_to_titre.df,sample,class
         geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3) +
         labs(
             x=paste0("IgG (Z score) to cluster related event"),
-            y = paste0("Probability of event \nwithin ", next_event_window, " days")) +
+            y = paste0("Probability of event \n within ", next_event_window, " days")) +
         guides(fill = "none", alpha = "none") +
         theme_minimal() +
         annotate("text", x = max_threshold + 1, y = 0.35, 
                  label = paste0("OR: ", round(ORs[2], 2), 
                                 "\nCI:", round(CIs[1, 1], 2), ", ", round(CIs[1, 2], 2), 
                                 "\n", p_label), 
-                 size = 5,
+                 size = plot_basesize / 2.8,
                  hjust = 0) +
         theme_universal(base_size = plot_basesize) + 
         theme(axis.title.y = element_text(size = plot_basesize))
@@ -1161,11 +1110,12 @@ create_regression_glmer_conserved_M <- function(M_titres, conserved_titres,sampl
         scale_fill_gradient(name = "Probability", low = "white", high = "navy") +
         labs(
             title = paste(antigen),  # Add antigen to title
-            x = paste0("IgG above ", titre_breakpoint, " (log10 RLU/mL)"),
+            x = paste0("IgG above ", titre_breakpoint, " \n (log10 RLU/mL)"),
             y = "Anti-M IgG (Z score)"
         ) +
         theme_minimal()+
-        theme_universal(base_size = plot_basesize)
+        theme_universal(base_size = plot_basesize) + 
+        theme(legend.position = "none") 
     
     #2: adjusted model with age household size and sex: in order to be able to visualise with forest plots 
     
@@ -1235,23 +1185,29 @@ for (ag in Antigen_list) {
     results_df <- rbind(results_df, results$model2_results)
 }
 
-# Combine all antigen rows into a single plot
-combined_plot <- cowplot::plot_grid(plotlist = plot_row_list, ncol = 3, align = "v")
 
-plot_09_fig06_panelF <- combined_plot
+shared_legend <- cowplot::get_legend(
+    plot_list[[1]] + theme(legend.position = "right",legend.key.size = unit(0.4, "lines"))
+                            # Extract from one plot
+)
+
+
+plot_09_fig06_panelF <- cowplot::plot_grid(
+    cowplot::plot_grid(plotlist = plot_list, ncol = 3, align = "v"),
+    shared_legend,
+    rel_widths = c(0.9, 0.1)  # Adjust width ratio
+)
+
 plot_09_fig06_panelF
 
 
 tbl_merge( tb2_list,
            tab_spanner = Antigen_list)
 
-# Display all plots
-print(combined_plot)
+
 
 # Example: Display merged tables for all antigens
 
-# Display all plots
-print(combined_plot)
 as.vector(levels(as.factor(results_df$term)))
 
 
@@ -1334,7 +1290,7 @@ new_rows <- unique(results_df$antigen) %>%
 M_forrest <- final_fp_df %>%
     filter(term != "(Intercept)") %>% # Exclude the intercept
     ggplot(aes(x = estimate, y = term)) +  # term already defined with levels
-    geom_point() +
+    geom_point(size = dot_size*2) +
     geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
     labs(
         title = "",
@@ -1345,7 +1301,7 @@ M_forrest <- final_fp_df %>%
     theme_minimal() +
     geom_point(
         data = new_rows %>% filter(!antigen %in% c("DNAseB", "GAC")),
-        aes(x = 1, y = term), color = "blue", size = 3
+        aes(x = 1, y = term), color = "blue", size = dot_size*2
     ) +
     facet_grid(
         cols = vars(antigen),
@@ -1401,8 +1357,8 @@ for (ag in Antigen_list) {
 # Combine all antigen rows into a single plot
 combined_plot <- cowplot::plot_grid(plotlist = plot_row_list, ncol = 3, align = "v")
 
-plot_09_fig06_panelF <- combined_plot
-plot_09_fig06_panelF
+plot_09_fig06_panelF_sens <- combined_plot
+plot_09_fig06_panelF_sens
 
 tbl_merge( tb1_list,
            tab_spanner = Antigen_list)
@@ -1499,7 +1455,7 @@ new_rows <- unique(results_df$antigen) %>%
 M_forrest <- final_fp_df %>%
     filter(term != "(Intercept)") %>% # Exclude the intercept
     ggplot(aes(x = estimate, y = term)) +  # term already defined with levels
-    geom_point() +
+    geom_point(size = dot_size *2) +
     geom_errorbarh(aes(xmin = conf.low, xmax = conf.high), height = 0.2) +
     labs(
         title = "",
@@ -1510,7 +1466,7 @@ M_forrest <- final_fp_df %>%
     theme_minimal() +
     geom_point(
         data = new_rows %>% filter(!antigen %in% c("DNAseB", "GAC")),
-        aes(x = 1, y = term), color = "blue", size = 3
+        aes(x = 1, y = term), color = "blue", size = dot_size *2
     ) +
     facet_grid(
         cols = vars(antigen),

@@ -124,7 +124,7 @@ IgG_blood$fold_changes_IgG_Blood %>%
 
 
 
-#####################################################################
+ #####################################################################
 ####### paired antibody titres:pre -post events #####################
 #####################################################################
 
@@ -159,11 +159,11 @@ rm(output, blood_IgG_for_results)
 #####################################################################
 
 
-plot_05_main01_v1.0 <- Longitudinal_event_plot_by_age(IgG_blood$titres_relative_to_baseline, sample = "blood", class = "IgG") + labs(y = "Absolute change from pre event IgG level (log10 RLU/mL)")
+plot_05_main01_v1.0 <- Longitudinal_event_plot_by_age(IgG_blood$titres_relative_to_baseline, sample = "blood", class = "IgG") + labs(y = "Absolute change from pre event \n  IgG level(log10 RLU/mL)")
 plot_05_main01_v1.0 
 
 
-plot_05_main02_v1.0 <- longitudinal_event_site_plot(IgG_blood$titres_relative_to_baseline_IgG_Blood, sample = "blood", class = "IgG",age_cut = 100) + labs(y = "Absolute change from pre event IgG level (log10 RLU/mL)")
+plot_05_main02_v1.0 <- longitudinal_event_site_plot(IgG_blood$titres_relative_to_baseline_IgG_Blood, sample = "blood", class = "IgG",age_cut = 100) + labs(y = "Absolute change from pre event \n  IgG level(log10 RLU/mL)")
 plot_05_main02_v1.0
 
 
@@ -281,6 +281,7 @@ plot_05_supp02_v1.0 <- df_to_adjust_event_type %>%
     geom_boxplot(width = 0.05, outlier.size = 0.3, fill = NA, aes(fill = event_type , col = event_type)) +
     
     ggdist::geom_dots(
+        size = dot_size,
         aes(fill = event_type , col = event_type),
         width = 0.3,
         position = position_nudge(x = 0.05)
@@ -297,7 +298,7 @@ plot_05_supp02_v1.0 <- df_to_adjust_event_type %>%
     theme_minimal() +
     scale_fill_manual(name = "Event Type", values = wesanderson::wes_palette("Zissou1")) + 
     scale_color_manual(name = "Event Type", values = wesanderson::wes_palette("Zissou1")) + 
-    labs(y = "Absolute change from pre event IgG level (log10 RLU/mL)",
+    labs(y = "Absolute change from pre event \n  IgG level(log10 RLU/mL)",
          x = "Event type") +
   #  ggtitle("Comparison of relative antibody changes between microbiologically confirmed event types in participants under 12") +
     # ggpubr::stat_compare_means()  +
@@ -341,13 +342,13 @@ supplementary_response_changes_age_facet <- df_to_adjust_event_type %>%
     
     ggplot(
         aes(x = event_type, y = pre_post)) +
-    geom_boxplot(aes(fill = event_type , col = event_type), alpha = 0.8) +
-    geom_point(aes(fill = event_type), shape = 21, color = "black", stroke = 0.2) +
+    geom_boxplot(aes(fill = event_type , col = event_type), alpha = 0.8, outliers = F) +
+    geom_point(size = dot_size,aes(fill = event_type), shape = 21, color = "black", stroke = 0.2) +
     facet_grid(Antigen ~ age_grp) +
     theme_minimal() +
     scale_fill_manual(name = "Event Type", values = wesanderson::wes_palette("Zissou1")) + 
     scale_color_manual(name = "Event Type", values = wesanderson::wes_palette("Zissou1")) + 
-    labs(y = "Absolute change from pre event IgG level (log10 RLU/mL)",
+    labs(y = "Absolute change from pre event \n  IgG level(log10 RLU/mL)",
          x = "Event type") +
     #  ggtitle("Comparison of relative antibody changes between microbiologically confirmed event types in participants under 12") +
     # ggpubr::stat_compare_means()  +
@@ -358,12 +359,13 @@ supplementary_response_changes_age_facet <- df_to_adjust_event_type %>%
     ggpubr::stat_pvalue_manual(
         label = "label",
         tip.length = 0.01,
-        size = 12 / (14/5),
+        size = plot_basesize / 2.8,
         step.increase = 0.035,
         step.group.by = "Antigen",
         position = position_dodge(width = 0.01)
     ) + 
-    theme(axis.text.x = element_blank())
+    theme(axis.text.x = element_blank(),
+          legend.key.size = unit(0.4, "lines"))
 
 
 plot_05_supp02_v1.0 <- supplementary_response_changes_age_facet
@@ -609,7 +611,7 @@ forest_plot <- combined_results_df %>%
 
     theme_minimal() +
     geom_point(data = new_rows ,
-               aes(x = 0, y = term), color = "blue", size = 3) +
+               aes(x = 0, y = term), color = "blue", size = 1.5) +
     # Separate age_grp and event_type under subheadings on y-axis, including reference level
     facet_grid(cols = vars(antigen), rows = vars(variable_label), scales = "free", space = "free_y") +
     theme_universal(base_size = plot_basesize)
@@ -662,7 +664,7 @@ plot_05_supp03_v1.0 <-
     ) +
     
     geom_smooth(method = "lm", se = FALSE, col = "black") +  # Linear regression line
-    geom_point(alpha = 0.8 ,aes(
+    geom_point(size = dot_size, alpha = 0.8 ,aes(
         col = Antigen)) + 
     facet_wrap(~Antigen, ncol = 5) +
     scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +
@@ -672,7 +674,7 @@ plot_05_supp03_v1.0 <-
     guides(col = "none") +
     labs(
         x = "Baseline IgG level (log10 RLU/mL)",
-        y = "Absolute change from pre event IgG level (log10 RLU/mL)",
+        y = "Absolute change from pre event \n  IgG level(log10 RLU/mL)",
     #    title = "Change in blood IgG titre from baseline around events relative to baseline titres",
      #   caption = "Coefficient and p-value determined using Pearson’s method with linear regression line plotted"
     ) +
@@ -686,7 +688,7 @@ plot_05_supp03_v1.0 <-
         label.x = 0.5,  # Adjust the x-position of the label
         label.y = 2.2,  # Set y-position of the label
         digits = 3, 
-        size = 5.5,# Number of digits for correlation coefficients
+        size = plot_basesize / 2.8,# Number of digits for correlation coefficients
         parse = TRUE    # Enable parsing for math notation
     ) +
     theme_universal(base_size = plot_basesize)
@@ -745,23 +747,19 @@ plot_05_main03_v1.0 <- no_event_titres_rel %>%
         y = rel_titre,
         col = Antigen
     )) +
-    geom_smooth(data = geo_mean_monthly_df, 
-                aes(x = month, y = geo_mean, group = 1), 
-                se = F,
-                #inherit.aes = FALSE,
-                color = "black", size = 0.8, linetype = "solid") +
-    geom_point(alpha = 0.8) +
+    geom_point(size = dot_size, alpha = 0.8) +
     scale_colour_manual(values = c("SpyCEP" = "#FDC086", "SpyAD" = "#d19c2f", "SLO" = "#386CB0", "GAC" = "#7FC97F", "DNAseB" = "#BEAED4")) +  
-    geom_line(aes(y = rel_titre, x = visit_date, group = pid),color = "grey", size = 0.3, alpha = 0.5) +
+    geom_line(aes(y = rel_titre, x = visit_date, group = pid),color = "grey", size = 0.3, alpha = 0.5,linewidth = 0.3) +
     geom_smooth(data = geo_mean_monthly_df, 
                 aes(x = month, y = geo_mean, group = 1), 
                 se = F,
+                linewidth = 0.6,
                 #inherit.aes = FALSE,
-                color = "black", size = 0.8, linetype = "solid", alpha = 0.5) +
+                color = "#496b87", size = 0.8, linetype = "solid", alpha = 0.6) +
     facet_grid(Antigen ~factor(age_grp)) +
     theme_minimal() +
     labs(
-        y = "Absolute change from baseline IgG level (log10 RLU/mL)",
+        y = "Absolute change from baseline \n IgG level (log10 RLU/mL)",
         x = "Date",
    #     title = "Longitudinal blood IgG profiles in participants with no microbiologically confirmed events, relative to baseline titre"
     ) +

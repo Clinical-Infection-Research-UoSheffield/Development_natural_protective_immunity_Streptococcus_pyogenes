@@ -35,65 +35,10 @@
 
 source("scripts/setup_environment.R")
 source("scripts/load_functions.R")
-base_size = 14
+
 # Set output directory
 
 output_dir <- "R_output/"
-
-
-#
-# Universal theme function
-theme_universal <- function(base_size = 14, base_family = "") {
-    theme_minimal(base_size = base_size, base_family = base_family) +
-        theme(
-            # Title settings
-            plot.title = element_text(
-                size = base_size,
-                hjust = 0.5,
-                face = "bold",
-                margin = margin(b = base_size / 2)
-            ),
-            # Subtitle settings
-            plot.subtitle = element_text(
-                size = base_size * 1.2,
-                hjust = 0.5,
-                margin = margin(b = base_size / 2)
-            ),
-            # Facet title settings
-            strip.text = element_text(
-                size = base_size,
-                face = "bold",
-                hjust = 0.5
-            ),
-            # Axis title settings
-            axis.title.x = element_text(
-                size = base_size,
-                face = "bold",
-                margin = margin(t = base_size / 2)  # Add space above the x-axis title
-            ),
-            axis.title.y = element_text(
-                size = base_size,
-                face = "bold" 
-            ),
-            # Axis text settings
-            axis.text = element_text(
-                size = base_size * 0.8
-            ),
-            # Legend title and text
-            legend.title = element_text(
-                size = base_size,
-                face = "bold"
-            ),
-            legend.text = element_text(
-                size = base_size
-            ),
-            # Margins
-            plot.margin = margin(t = base_size, r = base_size, b = base_size, l = base_size)
-        )
-}
-
-
-plot_basesize = 14
 
 
 
@@ -476,7 +421,6 @@ all_models_table %>% write.csv("R_output/aic_synergistic_mdoels_reponse_reviewer
 # Visualize AIC comparison
 # -----------------------------
 
-base_size = 14
 
 shelf(ggtext)
 
@@ -493,7 +437,7 @@ plot_1 <- all_models_table %>%
     ggplot(aes(x = AIC, y = Predictors)) +
     geom_segment(aes(x = AIC - 2, xend = AIC + 2, yend = Predictors), 
                  linetype = "dotted", color = "grey50") +
-    geom_point(size = 2.5, color = "steelblue") +
+    geom_point(size = dot_size, color = "steelblue") +
     theme_minimal() +
     labs(
         x = "AIC",
@@ -639,12 +583,12 @@ plot_2 <- or_df %>%
     geom_text(
         data = filter(or_df, above_limit),
         aes(x = 100, label = "→"),  # You can change to "*" or any symbol
-        vjust = -0.5, size = 4
+        vjust = -0.1, size = 4
     ) +
     geom_text(
         data = filter(or_df, below_limit),
         aes(x = 0.01, label = "←"),  # You can change to "*" or any symbol
-        vjust = -0.5, size = 4
+        vjust = -0.1, size = 4
     ) +
     scale_x_log10(
         limits = c(0.01, 100),
@@ -672,8 +616,9 @@ synergistic <- plot_grid(
    plot_1, plot_2,
     ncol = 1,
    nrow = 2,
-   rel_heights = c(0.4,0.6),
-   labels = c("A", "B")
+   rel_heights = c(0.5,0.5),
+   labels = c("A", "B"),
+   label_size = 8
    # Arrange rows vertically
                  # Equal heights for rows
 )
@@ -684,7 +629,9 @@ ggsave("R_output/response_reviewers_combined_effects_protection.png",plot = syne
 
 
 # Save as pdf for final submission 
-ggsave("R_output/final_submission/figE_synergistic_protection.pdf", plot = synergistic, width = 1200 / 96, height = 800/ 96, dpi = 300, bg = "white", device = "pdf")
+ggsave("R_output/final_submission/extended_data_fig3_synergistic_protection.jpg", 
+       plot = synergistic, 
+       width = 188, height = 120, dpi = 600, units = "mm", bg = "white")
 
 
 

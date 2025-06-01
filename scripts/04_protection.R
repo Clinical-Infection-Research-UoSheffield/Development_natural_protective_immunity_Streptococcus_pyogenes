@@ -373,12 +373,11 @@ mixed_effects_protection_glmer <- function(path_to_titre.df, sample, class, next
                                 "\n95% CI: [", round(CIs[1, 1], 2), ", ", round(CIs[1, 2], 2), "]", 
                                 "\n", p_label), 
                  hjust = 0,
-                 size = 5) +
+                 size = plot_basesize / 2.8) +
         theme_universal(base_size = plot_basesize)
     
-    plot <- cowplot::plot_grid(plot1,plot2,ncol = 1)
     
-    results_list <- list("table" = tb1, "plot" = plot, "AIC_glmer" = model_aic)
+    results_list <- list("table" = tb1, "plot1" = plot1, "plot2" = plot2, "AIC_glmer" = model_aic)
     
     return(results_list)
 }
@@ -390,7 +389,8 @@ mixed_effects_protection_glmer <- function(path_to_titre.df, sample, class, next
 Antigen_list <- c("GAC", "SLO" , "SpyAD",  "SpyCEP","DNAseB")
 
 table_list <- list()
-plot_list <- list()
+plot_list1 <- list()
+plot_list2 <- list()
 
 
 # Initialize a dataframe to store AIC values
@@ -412,7 +412,8 @@ for (ag in Antigen_list) {
     
     # Extract and store the table and plot
     table_list[[ag]] <- results$table
-    plot_list[[ag]] <- results$plot
+    plot_list1[[ag]] <- results$plot1
+    plot_list2[[ag]] <- results$plot2
     # Append the AIC to the dataframe
     AIC_glmer <- rbind(AIC_glmer, data.frame(Antigen = ag, AIC_glmer = results$AIC_glmer))
     
@@ -421,8 +422,13 @@ for (ag in Antigen_list) {
 # Combine the gtsummary tables
 combined_table <- tbl_stack(table_list)
 
+
+row1 <- cowplot::plot_grid(plotlist = plot_list1, labels = "A", nrow = 1, label_size = 8) # Unpacks plot_list1
+row2 <- cowplot::plot_grid(plotlist = plot_list2, labels = "B", nrow = 1, label_size = 8) # Unpacks plot_list2
+
 # Combine the plots 
-combined_plot <- patchwork::wrap_plots(plot_list, ncol = 5) # adjust ncol as needed
+combined_plot <- cowplot::plot_grid(row1, row2, ncol = 1,rel_heights = c(1, 1), align = "v")
+
 
 # Print the combined table and plot
 print(combined_table)
@@ -533,53 +539,54 @@ identify_piecewise_transition<- function(path_to_titre.df, sample, class, next_e
     
 }
 
-all_aics <- data.frame(Antigen = character(), titre_breakpoint = numeric(), AIC = numeric())
+#all_aics <- data.frame(Antigen = character(), titre_breakpoint = numeric(), AIC = numeric())
 
 
 # Loop through each Anitgen and apply the function:identify_piecewise_transition
-for (ag in Antigen_list) {
-    
-    results <- identify_piecewise_transition(path_to_titre.df = "data/blood_IgG_titres.RDS",
-                                           sample = "Blood",
-                                           class = "IgG",
-                                           var_name = "titre",
-                                           antigen = ag,
-                                           slice_window = 0.1)
-    
+#for (ag in Antigen_list) {
+#    
+#    results <- identify_piecewise_transition(path_to_titre.df = "data/blood_IgG_titres.RDS",
+#                                           sample = "Blood",
+#                                           class = "IgG",
+#                                           var_name = "titre",
+#                                           antigen = ag,
+#                                           slice_window = 0.1)
+#    
+#
+#    # Append AIC results to the master dataframe
+#    aic_df <- results$AICs  # Extract AIC dataframe from the function output
+#    aic_df$Antigen <- ag    # Add the antigen as a column
+#    all_aics <- rbind(all_aics, aic_df)  # Append to the master dataframe
+#    
+#    
+#}
+#
+## create a breakpoint dataframe with visualised breakpoint
 
-    # Append AIC results to the master dataframe
-    aic_df <- results$AICs  # Extract AIC dataframe from the function output
-    aic_df$Antigen <- ag    # Add the antigen as a column
-    all_aics <- rbind(all_aics, aic_df)  # Append to the master dataframe
-    
-    
-}
-
-# create a breakpoint dataframe with visualised breakpoint
 titre_breakpoint_df <- tibble(Antigen = c("SLO","SpyAD", "SpyCEP", "GAC","DNAseB"), transition_point = c(4.3,4.1,4.3,3,3))
 
-all_aics <-all_aics %>%
-    left_join(AIC_glmer) %>%
-    left_join(titre_breakpoint_df)
+#all_aics <-all_aics %>%
+#    left_join(AIC_glmer) %>%
+#    left_join(titre_breakpoint_df)
 
 
 # Plot AIC values for the model at each iteratnion of titre threhold. Values within 2 are considered comparable
 
-all_aics %>%
-    ggplot(
-        aes(x = titre_breakpoint, y = AIC)
-    ) +
-    geom_point() +
-    geom_hline(aes(yintercept = AIC_glmer), linetype = "dashed", color = "blue") +
-    geom_hline(aes(yintercept = AIC_glmer -2), linetype = "dashed", color = "green") +
-    geom_vline(aes(xintercept = transition_point), linetype = "dashed", color = "red") +
-    facet_wrap(~ Antigen, scales = "free") +
-    labs(
-        title = "AIC across Titre Breakpoints by Antigen",
-        x = "Titre Breakpoint",
-        y = "AIC"
-    ) +
-    theme_minimal() 
+# all_aics %>%
+#     ggplot(
+#         aes(x = titre_breakpoint, y = AIC)
+#     ) +
+#     geom_point() +
+#     geom_hline(aes(yintercept = AIC_glmer), linetype = "dashed", color = "blue") +
+#     geom_hline(aes(yintercept = AIC_glmer -2), linetype = "dashed", color = "green") +
+#     geom_vline(aes(xintercept = transition_point), linetype = "dashed", color = "red") +
+#     facet_wrap(~ Antigen, scales = "free") +
+#     labs(
+#         title = "AIC across Titre Breakpoints by Antigen",
+#         x = "Titre Breakpoint",
+#         y = "AIC"
+#     ) +
+#    theme_minimal() 
 
 
 #############################################################################
@@ -981,14 +988,14 @@ plot_probabilites_piecewise <- function(path_to_titre.df, sample, class, next_ev
         guides(fill = "none", alpha = "none") +
         xlim(lxlm,uxlm) +
         annotate("text", x = titre_breakpoint + 0.15, y = max(new_data$prob) +0.005, 
-                 size = 5,
+                 size = plot_basesize /2.8,
                  label = paste0("Above transition:",
                                 "\nOR : ", round(OR_above, 2), 
                                 "\nCI:", round(CI_above[1], 2), ",", round(CI_above[2], 2), 
                                 "\n", p_label_above), 
                  hjust = 0)  +
         annotate("text", x = lxlm + 0.1  , y = max(new_data$prob)+0.005, 
-                 size = 5,
+                 size = plot_basesize /2.8,
                  label = paste0("Below transition:",
                                 "\nOR : ", round(OR_below, 2), 
                                 "\nCI:", round(CI_below[1], 2), ",", round(CI_below[2], 2), 
@@ -1063,9 +1070,9 @@ combined_table
 shelf(cowplot)
 
 # Combine the plots for each row
-row1 <- cowplot::plot_grid(plotlist = plot_list1, labels = "A", nrow = 1) # Unpacks plot_list1
-row2 <- cowplot::plot_grid(plotlist = plot_list2, labels = "B", nrow = 1) # Unpacks plot_list2
-row3 <- cowplot::plot_grid(plotlist = plot_list3, labels = "C", nrow = 1) # Unpacks plot_list3
+row1 <- cowplot::plot_grid(plotlist = plot_list1, labels = "A", nrow = 1, label_size = 8) # Unpacks plot_list1
+row2 <- cowplot::plot_grid(plotlist = plot_list2, labels = "B", nrow = 1, label_size = 8) # Unpacks plot_list2
+row3 <- cowplot::plot_grid(plotlist = plot_list3, labels = "C", nrow = 1, label_size = 8) # Unpacks plot_list3
 
 # Combine the rows into one grid
 combined_plot <- cowplot::plot_grid(row1, row2, row3, ncol = 1,rel_heights = c(1, 1, 0.5), align = "v")
@@ -1349,7 +1356,7 @@ main_07_fig4B_V3 <- final_fp_df %>%
     theme_minimal() +
     geom_point(
         data = new_rows %>% filter(!antigen %in% c("DNAseB", "GAC")),
-        aes(x = 1, y = term), color = "blue", size = 3
+        aes(x = 1, y = term), color = "blue", size = 1.5
     ) +
     facet_grid(
         cols = vars(antigen),
@@ -1385,7 +1392,7 @@ main_07_fig4B_V3
 #df <- readRDS("data/baseline_blood_no_disease_titres.RDS")  
 
 # run this line to source original data -> not annonymised only for manuscript revisions 
-df <- readRDS("data/baseline_blood_no_disease_titres.RDS")
+df <- readRDS("R_objects/baseline_blood_no_disease_titres.RDS")
 protective_threshold <- readRDS("data/bloodIgG_protective_threshold_df.RDS")
 
 
@@ -1450,7 +1457,7 @@ fig_4E_age_thresholds <- df %>%
     ggplot(aes(x = age, y = titre, col = factor(above_threshold))) +  # Use factor to color by above/below threshold
     guides(color = "none") +
     facet_wrap(~Antigen) +
-    geom_point(alpha = 0.5) +
+    geom_point(alpha = 0.5, size = dot_size) +
     scale_color_manual(values = c("#d73027","#7570b3")) +
     labs(
         y = "IgG level (log10 RLU/mL)",
