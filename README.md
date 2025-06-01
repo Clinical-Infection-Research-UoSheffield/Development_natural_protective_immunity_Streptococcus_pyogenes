@@ -23,7 +23,7 @@ This repository contains the code to reproduce analyses from the manuscript enti
 - All dates are uniformly offset by a constant to preserve time intervals while concealing actual dates.
 - Exact ages are replaced with pseudo-ages randomly generated within defined age groups.
 
-Upon publication, data to reproduce analyses will be made publicly available, hosted on Zenodo at DOI:...
+Upon publication, data to reproduce analyses will be made publicly available, hosted on Zenodo at [https://doi.org/10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)
 
 ---
 
@@ -106,7 +106,7 @@ Run the `load_data.R` script to automatically download and extract the anonymize
 
 `source("load_data.R")`
 
-> The data has been made publicly available upon publication via DOI: [10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)
+> The data has been made publicly available upon publication via DOI: [https://doi.org/10.5281/zenodo.14887949](https://doi.org/10.5281/zenodo.14887949)
 
 #### 🛠 **Option 2: Manual download (no R required)**
 

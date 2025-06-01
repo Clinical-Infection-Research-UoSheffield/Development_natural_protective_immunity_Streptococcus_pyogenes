@@ -54,6 +54,10 @@ final_dems %>%
 # Use this version to create plots with origianl data 
 df <- readRDS("R_objects//baseline_blood_no_disease_titres.RDS")  
 
+# Return the numberes included in baseline cross sectional analysis 
+df %>%
+    pull(pid) %>% unique() %>% length()
+
 # create an empty dataframe to append the output of your for loop
 centile_df <- data.frame()
 
